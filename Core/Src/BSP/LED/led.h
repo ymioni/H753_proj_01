@@ -1,13 +1,13 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
+  * @file           : led.h
+  * @brief          : Header for led.c file.
   *                   This file contains the common defines of the application.
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2024 STMicroelectronics.
+  *
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -19,8 +19,8 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __MAIN_H
-#define __MAIN_H
+#ifndef __BSP_LED_H
+#define __BSP_LED_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,12 +31,29 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdbool.h>
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+typedef enum
+{
+	eBSP_LED_1_LED,						//	0
+	eBSP_LED_2_ORANGE,					//	1
+	/***** DON'T CROSS THIS LINE *****/
+	eBSP_LED_MAX_VALUE					//	2
+}tBSP_LED;
 
+typedef enum
+{
+	eBSP_LED_PATTERN_OFF,				//	0
+	eBSP_LED_PATTERN_ON,				//	1
+	eBSP_LED_PATTERN_BLINK_VERY_FAST,	//	2
+	eBSP_LED_PATTERN_BLINK_FAST,		//	3
+	eBSP_LED_PATTERN_BLINK_SLOW,		//	4
+	eBSP_LED_PATTERN_BLINK_VERY_SLOW,	//	5
+	eBSP_LED_PATTERN_BLINK_CUSTOM,		//	6 (TBD)
+}tBSP_LED_Pattern;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -50,10 +67,13 @@ extern "C" {
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler(void);
-
 /* USER CODE BEGIN EFP */
-
+void BSP_LED_Init(void);
+void BSP_LED_MainStart(void);
+void BSP_LED_MainStop(void);
+void BSP_LED_MainLoop(void);
+void BSP_LED_Start(tBSP_LED Led, tBSP_LED_Pattern Pattern, uint16_t Time);
+void BSP_LED_Stop(tBSP_LED Led);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -66,4 +86,4 @@ void Error_Handler(void);
 }
 #endif
 
-#endif /* __MAIN_H */
+#endif /* __BSP_LED_H */

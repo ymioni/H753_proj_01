@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include ".\LED\Led.h"
 
 /* USER CODE END Includes */
 
@@ -105,31 +106,16 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   /* USER CODE BEGIN WHILE */
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
+  BSP_LED_Start(eBSP_LED_1_LED, eBSP_LED_PATTERN_ON, 0);
+  BSP_LED_MainStart();
   while (1)
   {
-static uint8_t led = 0;
-
 	  if( HAL_IWDG_Refresh(&hiwdg1) != HAL_OK)
 	  {
 		  Error_Handler();
 	  }
 
-	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_14);
-	HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_1);
-	  switch( led)
-	  {
-	  case	0:
-		  HAL_Delay(500);
-		  led ++;
-		  break;
-
-	  case	1:
-	  default:
-		  HAL_Delay(100);
-		  led  = 0;
-		  break;
-	  }
+	  BSP_LED_MainLoop();
   }
     /* USER CODE END WHILE */
 
