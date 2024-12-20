@@ -1,12 +1,13 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    stm32h7xx_it.h
-  * @brief   This file contains the headers of the interrupt handlers.
+  * @file           : usart.h
+  * @brief          : Header for usart.c file.
+  *                   This file contains the common defines of the application.
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2024 STMicroelectronics.
+  *
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -18,12 +19,15 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM32H7xx_IT_H
-#define __STM32H7xx_IT_H
+#ifndef __BSP_USART_H
+#define __BSP_USART_H
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
+
+/* Includes ------------------------------------------------------------------*/
+#include "stm32h7xx_hal.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -32,7 +36,22 @@
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+typedef enum
+{
+	eBSP_USART_PORT_NONE,					//	0
+	eBSP_USART_PORT_1,						//	1
+	eBSP_USART_PORT_2,						//	2
+	eBSP_USART_PORT_3,						//	3
+	eBSP_USART_PORT_4,						//	4
+	eBSP_USART_PORT_5,						//	5
+	eBSP_USART_PORT_6,						//	6
+	eBSP_USART_PORT_7,						//	7
+	eBSP_USART_PORT_8,						//	8
+	/***** DON'T CROSS THIS LINE *****/
+	eBSP_USART_MAX_VALUE					//	9
+}tBSP_USART_PORT;
 
+typedef	void (*Cb_UsartTxCplt)(void);
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -46,22 +65,20 @@
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void NMI_Handler(void);
-void HardFault_Handler(void);
-void MemManage_Handler(void);
-void BusFault_Handler(void);
-void UsageFault_Handler(void);
-void SVC_Handler(void);
-void DebugMon_Handler(void);
-void PendSV_Handler(void);
-void SysTick_Handler(void);
-void USART3_IRQHandler(void);
 /* USER CODE BEGIN EFP */
-
+void BSP_USART_Init(tBSP_USART_PORT Port, UART_HandleTypeDef *huart);
+int  BSP_USART_Send(tBSP_USART_PORT Port, Cb_UsartTxCplt CbFunc, void *buf, uint16_t len);
+void BSP_USART_Receive(void);
 /* USER CODE END EFP */
+
+/* Private defines -----------------------------------------------------------*/
+
+/* USER CODE BEGIN Private defines */
+
+/* USER CODE END Private defines */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __STM32H7xx_IT_H */
+#endif /* __BSP_USART_H */
