@@ -52,6 +52,7 @@ typedef enum
 }tBSP_USART_PORT;
 
 typedef	void (*Cb_UsartTxCplt)(void);
+typedef	void (*Cb_UsartRxCplt)(uint8_t Byte);
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -66,9 +67,10 @@ typedef	void (*Cb_UsartTxCplt)(void);
 
 /* Exported functions prototypes ---------------------------------------------*/
 /* USER CODE BEGIN EFP */
-void BSP_USART_Init(tBSP_USART_PORT Port, UART_HandleTypeDef *huart);
-int  BSP_USART_Send(tBSP_USART_PORT Port, Cb_UsartTxCplt CbFunc, void *buf, uint16_t len);
-void BSP_USART_Receive(void);
+void BSP_USART_Init( tBSP_USART_PORT Port, UART_HandleTypeDef *huart);
+void BSP_USART_MainLoop( void);
+int  BSP_USART_Send( tBSP_USART_PORT Port, Cb_UsartTxCplt CbFunc, void *buf, uint16_t len);
+int	 BSP_USART_Receive(tBSP_USART_PORT Port, Cb_UsartRxCplt CbFunc);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

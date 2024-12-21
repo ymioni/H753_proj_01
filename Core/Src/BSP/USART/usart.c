@@ -51,7 +51,18 @@ struct
 	UART_HandleTypeDef*	Handle;
 	USART_TypeDef*		Port;
 	Cb_UsartTxCplt		CbFunc_TxCplt;
+	Cb_UsartRxCplt		CbFunc_RxCplt;
 }USART_Data[eBSP_USART_MAX_VALUE] = {0};
+
+static	bool		Main_Active 		= false;
+static	uint16_t	Main_Time 			= 0;
+static	uint32_t	Main_Time_Target	= 0;
+static	uint8_t		Main_State 			= 0;
+static	uint8_t		Main_Buf[32];
+static	uint8_t		Main_BufLen			= 0;
+static	tBSP_USART_PORT	Main_Port		=	eBSP_USART_PORT_NONE;
+static  uint8_t		Main_RxByte			= 0;
+static  uint32_t	Main_RxCnt			= 0;
 
 /* USER CODE END PV */
 
@@ -88,6 +99,45 @@ void BSP_USART_Init(tBSP_USART_PORT Port, UART_HandleTypeDef *huart)
 		case	eBSP_USART_PORT_8:	/*USART_Data[Port].Port = USART8;*/	break;
 		default:	return;
 	}
+
+	Main_Active 		= true;
+	Main_Time 			= 0;
+	Main_Time_Target	= 0;
+	Main_State 			= 0;
+	Main_Port			= eBSP_USART_PORT_NONE;
+}
+
+/**
+  * @brief
+  * @retval
+  */
+void BSP_USART_MainLoop( void)
+{
+	if( Main_Active == false)	return;
+
+	if( HAL_GetTick() < Main_Time_Target)	return;
+
+	switch( Main_State)
+	{
+	case	0:
+		return;
+
+	case	1:
+		Main_Time	=	500;
+		Main_State ++;
+		break;
+
+	case	2:
+		Main_State	= 1;
+		HAL_UART_Transmit_IT(USART_Data[Main_Port].Handle, Main_Buf, Main_BufLen);
+		break;
+
+	default:
+		Main_State	=	0;
+		return;
+	}
+
+	Main_Time_Target = HAL_GetTick() + Main_Time;
 }
 
 /**
@@ -98,9 +148,16 @@ int BSP_USART_Send(tBSP_USART_PORT Port, Cb_UsartTxCplt CbFunc, void *buf, uint1
 {
 	if( Port >= eBSP_USART_MAX_VALUE)		return -1;
 	if( CbFunc == NULL)						return -2;
-	if( buf == NULL)						return -3;
-	if( len == 0)							return -4;
-	if( USART_Data[Port].Handle == NULL)	return -5;
+	if( USART_Data[Port].Handle == NULL)	return -3;
+	if( buf == NULL)						return -4;
+	if( len == 0)							return -5;
+
+	memset( Main_Buf, 0, sizeof( Main_Buf));
+	memcpy( Main_Buf, buf, len);
+	Main_BufLen	=	len;
+	Main_State	=	0;
+	Main_Time	=	0;
+	Main_Port	=	Port;
 
 	USART_Data[Port].CbFunc_TxCplt = CbFunc;
 	HAL_StatusTypeDef	result =	HAL_UART_Transmit_IT(USART_Data[Port].Handle, buf, len);
@@ -111,8 +168,15 @@ int BSP_USART_Send(tBSP_USART_PORT Port, Cb_UsartTxCplt CbFunc, void *buf, uint1
   * @brief
   * @retval
   */
-void BSP_USART_Receive(void)
+int BSP_USART_Receive(tBSP_USART_PORT Port, Cb_UsartRxCplt CbFunc)
 {
+	if( Port >= eBSP_USART_MAX_VALUE)		return -1;
+	if( CbFunc == NULL)						return -2;
+	if( USART_Data[Port].Handle == NULL)	return -3;
+
+	USART_Data[Port].CbFunc_RxCplt = CbFunc;
+	HAL_StatusTypeDef	result =	HAL_UART_Receive_IT(USART_Data[Port].Handle, &Main_RxByte, 1);
+    return( result);
 }
 
 // Callback for TX complete
@@ -122,14 +186,33 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
     {
     	if( USART_Data[eBSP_USART_PORT_3].CbFunc_TxCplt)
     		USART_Data[eBSP_USART_PORT_3].CbFunc_TxCplt();
+//    	Main_State	=	1;s
+    }
+}
+
+// Callback for RX complete
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    Main_RxCnt ++;
+
+    if (huart->Instance == USART_Data[eBSP_USART_PORT_3].Port)
+    {
+    	if( USART_Data[eBSP_USART_PORT_3].CbFunc_RxCplt)
+    	{
+    		USART_Data[eBSP_USART_PORT_3].CbFunc_RxCplt(Main_RxByte);
+    		HAL_UART_Receive_IT(USART_Data[eBSP_USART_PORT_3].Handle, &Main_RxByte, 1);
+    	}
     }
 }
 
 // Callback for Error
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
+    __HAL_UART_FLUSH_DRREGISTER(huart);
+
     if (huart->Instance == USART_Data[eBSP_USART_PORT_3].Port)
     {
+		HAL_UART_Receive_IT(USART_Data[eBSP_USART_PORT_3].Handle, &Main_RxByte, 1);
     }
 }
 

@@ -50,7 +50,9 @@ RTC_HandleTypeDef hrtc;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
-
+static	uint8_t	Usart_RxBuf[64];
+static	uint8_t	Usart_RxBufIdx = 0;
+static	bool	Usart_RxBufIgnore = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -66,10 +68,26 @@ static void MX_USART3_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void USART_TxCplt(void)
+void Main_USART_TxCplt(void)
 {
-int i;
-	i = 10;
+}
+
+void Main_USART_RxCplt(uint8_t Byte)
+{
+	if( Usart_RxBufIgnore == true)
+		return;
+
+	if( Usart_RxBufIdx >= (sizeof(Usart_RxBuf) - 1))
+		Usart_RxBufIdx = 0;
+
+	Usart_RxBuf[Usart_RxBufIdx ++]	= Byte;
+	Usart_RxBuf[Usart_RxBufIdx] 	= 0x00;
+
+	if( Byte == '\r')
+	{
+		BSP_USART_Send(eBSP_USART_PORT_3, Main_USART_TxCplt, Usart_RxBuf, Usart_RxBufIdx);
+		Usart_RxBufIdx = 0;
+	}
 }
 
 /* USER CODE END 0 */
@@ -120,7 +138,12 @@ int main(void)
   BSP_LED_MainStart();
 
   BSP_USART_Init(eBSP_USART_PORT_3, &huart3);
-  BSP_USART_Send(eBSP_USART_PORT_3, USART_TxCplt, "ABCD", 4);
+//  Usart_RxBuf[64];
+  Usart_RxBufIdx = 0;
+  Usart_RxBufIgnore = false;
+  char	String[] = "ABCD\n";
+  BSP_USART_Receive(eBSP_USART_PORT_3, Main_USART_RxCplt);
+  BSP_USART_Send(eBSP_USART_PORT_3, Main_USART_TxCplt, String, strlen(String));
 
   while (1)
   {
@@ -130,6 +153,7 @@ int main(void)
 	  }
 
 	  BSP_LED_MainLoop();
+	  BSP_USART_MainLoop();
   }
     /* USER CODE END WHILE */
 
