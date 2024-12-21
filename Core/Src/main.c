@@ -85,7 +85,8 @@ void Main_USART_RxCplt(uint8_t Byte)
 
 	if( Byte == '\r')
 	{
-		BSP_USART_Send(eBSP_USART_PORT_3, Main_USART_TxCplt, Usart_RxBuf, Usart_RxBufIdx);
+		printf("Received Data!\n");
+//		BSP_USART_Send(eBSP_USART_PORT_3, Main_USART_TxCplt, Usart_RxBuf, Usart_RxBufIdx);
 		Usart_RxBufIdx = 0;
 	}
 }

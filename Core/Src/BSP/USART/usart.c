@@ -224,6 +224,24 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
     }
 }
 
+// Retarget printf to USART3
+int __io_putchar(int ch)
+{
+	if( USART_Data[eBSP_USART_PORT_3].Handle == NULL)
+		return 0;
+
+    HAL_UART_Transmit(USART_Data[eBSP_USART_PORT_3].Handle, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+// Support for standard printf
+int fputc(int ch, FILE *f)
+{
+    return __io_putchar(ch);
+}
+
+
+
 #ifdef __cplusplus
 }
 #endif
