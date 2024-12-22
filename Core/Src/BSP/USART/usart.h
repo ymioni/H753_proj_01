@@ -84,7 +84,7 @@ typedef	void (*Cb_UsartRxCplt)(uint8_t Byte);
 
 /* Exported functions prototypes ---------------------------------------------*/
 /* USER CODE BEGIN EFP */
-tBSP_USART_RESULT	BSP_USART_Init( tBSP_USART_PORT Port, UART_HandleTypeDef *huart);
+tBSP_USART_RESULT	BSP_USART_Init( tBSP_USART_PORT Port, UART_HandleTypeDef *handle);
 void 				BSP_USART_MainLoop( void);
 tBSP_USART_RESULT	BSP_USART_Send( tBSP_USART_PORT Port, Cb_UsartTxCplt CbFunc, void *buf, uint16_t len);
 tBSP_USART_RESULT	BSP_USART_Receive(tBSP_USART_PORT Port, Cb_UsartRxCplt CbFunc);

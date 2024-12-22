@@ -82,10 +82,10 @@ static  uint32_t		Main_RxCnt			= 0;
   * @brief
   * @retval
   */
-tBSP_USART_RESULT BSP_USART_Init(tBSP_USART_PORT Port, UART_HandleTypeDef *huart)
+tBSP_USART_RESULT BSP_USART_Init(tBSP_USART_PORT Port, UART_HandleTypeDef *handle)
 {
 	if( Port >= eBSP_USART_MAX_VALUE)		return eBSP_USART_RESULT_INVALID_PORT;
-	if( huart == NULL)						return eBSP_USART_RESULT_NULL_HANDLE;
+	if( handle == NULL)						return eBSP_USART_RESULT_NULL_HANDLE;
 
 	switch( Port)
 	{
@@ -99,7 +99,7 @@ tBSP_USART_RESULT BSP_USART_Init(tBSP_USART_PORT Port, UART_HandleTypeDef *huart
 		case	eBSP_USART_PORT_8:									return eBSP_USART_RESULT_NA_PORT;
 		default:													return eBSP_USART_RESULT_INVALID_PORT;
 	}
-	USART_Data[Port].Handle = huart;
+	USART_Data[Port].Handle = handle;
 
 	Main_Active 		= true;
 	Main_Time 			= 0;

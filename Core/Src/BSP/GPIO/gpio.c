@@ -46,21 +46,19 @@ extern "C" {
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+#define	BSP_GPIO_MAX_SETTINGS		20
+
+static	uint8_t			GPIO_Data_idx = 0;
 struct
 {
-	GPIO_TypeDef *		Port;
+	GPIO_TypeDef*		Port;
 	uint16_t			Pin;
-	tBSP_GPIO_Pattern	Pattern;
-	uint16_t			Timer;
-}GPIO_Data[eBSP_GPIO_MAX_VALUE];
-//}GPIO_Data[eBSP_GPIO_MAX_VALUE]	=	{	{ .Port = GPIOB, .Pin = GPIO_PIN_14, .Pattern	= eBSP_GPIO_PATTERN_OFF, .Timer	= 0},
-//										{ .Port = GPIOE, .Pin = GPIO_PIN_1,  .Pattern	= eBSP_GPIO_PATTERN_OFF, .Timer	= 0},
-//									};
+}GPIO_Data[BSP_GPIO_MAX_SETTINGS] = {0};
 
-static	bool		Main_Active 		= false;
-static	uint16_t	Main_Time 			= 0;
-static	uint32_t	Main_Time_Target	= 0;
-static	uint8_t		Main_State 			= 0;
+static	bool			Main_Active 		= false;
+static	uint16_t		Main_Time 			= 0;
+static	uint32_t		Main_Time_Target	= 0;
+static	uint8_t			Main_State 			= 0;
 
 /* USER CODE END PV */
 
@@ -79,43 +77,27 @@ static	uint8_t		Main_State 			= 0;
   * @brief
   * @retval
   */
-void BSP_GPIO_Init(void)
+tBSP_GPIO_RESULT BSP_GPIO_Init(GPIO_TypeDef* Port, uint16_t Pin)
 {
-	Main_Active 		= false;
-	Main_Time 			= 0;
-	Main_Time_Target	= 0;
-	Main_State 			= 0;
-}
+	if( GPIO_Data_idx >= BSP_GPIO_MAX_SETTINGS)	return eBSP_GPIO_RESULT_SETTING_OVERFLOW;
 
-/**
-  * @brief
-  * @retval
-  */
-void BSP_GPIO_MainStart(void)
-{
+	GPIO_Data[GPIO_Data_idx].Port	= Port;
+	GPIO_Data[GPIO_Data_idx].Pin	= Pin;
+	GPIO_Data_idx ++;
+
 	Main_Active 		= true;
 	Main_Time 			= 0;
 	Main_Time_Target	= 0;
 	Main_State 			= 0;
+
+	return eBSP_GPIO_RESULT_HAL_OK;
 }
 
 /**
   * @brief
   * @retval
   */
-void BSP_GPIO_MainStop(void)
-{
-	Main_Active 		= false;
-	Main_Time 			= 0;
-	Main_Time_Target	= 0;
-	Main_State 			= 0;
-}
-
-/**
-  * @brief
-  * @retval
-  */
-void BSP_GPIO_MainLoop(void)
+void BSP_GPIO_MainLoop( void)
 {
 	if( Main_Active == false)	return;
 
@@ -124,11 +106,15 @@ void BSP_GPIO_MainLoop(void)
 	switch( Main_State)
 	{
 	case	0:
-		Main_Time	=	100;
-		break;
+		return;
 
 	case	1:
 		Main_Time	=	500;
+		Main_State ++;
+		break;
+
+	case	2:
+		Main_State	= 1;
 		break;
 
 	default:
@@ -136,41 +122,7 @@ void BSP_GPIO_MainLoop(void)
 		return;
 	}
 
-//	for( tBSP_GPIO Gpio = 0; Gpio < eBSP_GPIO_MAX_VALUE; Gpio ++)
-//	{
-//		HAL_GPIO_TogglePin(GPIO_Data[Gpio].Port, GPIO_Data[Gpio].Pin);
-//	}
-
-	Main_State	++;
 	Main_Time_Target = HAL_GetTick() + Main_Time;
-}
-
-/**
-  * @brief
-  * @retval
-  */
-void BSP_GPIO_Start(tBSP_GPIO Gpio, tBSP_GPIO_Pattern Pattern, uint16_t Time)
-{
-	if( Gpio >= eBSP_GPIO_MAX_VALUE)	return;
-
-	GPIO_Data[Gpio].Pattern	=	eBSP_GPIO_PATTERN_ON;
-	GPIO_Data[Gpio].Timer		=	Time;
-
-	HAL_GPIO_WritePin(GPIO_Data[Gpio].Port, GPIO_Data[Gpio].Pin, GPIO_PIN_SET);
-}
-
-/**
-  * @brief
-  * @retval
-  */
-void BSP_GPIO_Stop(tBSP_GPIO Gpio)
-{
-	if( Gpio >= eBSP_GPIO_MAX_VALUE)	return;
-
-	GPIO_Data[Gpio].Pattern	=	eBSP_GPIO_PATTERN_OFF;
-	GPIO_Data[Gpio].Timer		=	0;
-
-	HAL_GPIO_WritePin(GPIO_Data[Gpio].Port, GPIO_Data[Gpio].Pin, GPIO_PIN_RESET);
 }
 
 /**
@@ -179,11 +131,33 @@ void BSP_GPIO_Stop(tBSP_GPIO Gpio)
   */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+uint8_t			idx;
+GPIO_TypeDef*	Port = NULL;
+
+
+	for( idx = 0; idx < BSP_GPIO_MAX_SETTINGS; idx ++)
+	{
+		if( GPIO_Data[idx].Pin == GPIO_Pin)
+		{
+			Port = GPIO_Data[idx].Port;
+			break;
+		}
+	}
+
 	if( GPIO_Pin == GPIO_PIN_13) // PORTC, PIN 13
 	{
-		printf("Blue button pressed\n");
+		if( Port != NULL)
+		{
+			if( HAL_GPIO_ReadPin(Port, GPIO_Pin) == GPIO_PIN_SET)
+				printf("Blue button pressed\n");
+			else
+				printf("Blue button released\n");
+		}
+		else
+			printf("Error! Invalid Port\n");
 	}
 }
+
 
 
 #ifdef __cplusplus

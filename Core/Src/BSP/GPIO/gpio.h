@@ -1,8 +1,8 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : led.h
-  * @brief          : Header for led.c file.
+  * @file           : gpio.h
+  * @brief          : Header for gpio.c file.
   *                   This file contains the common defines of the application.
   ******************************************************************************
   * @attention
@@ -38,22 +38,23 @@ extern "C" {
 /* USER CODE BEGIN ET */
 typedef enum
 {
-	eBSP_GPIO_1_GPIO,						//	0
-	eBSP_GPIO_2_ORANGE,					//	1
+	eBSP_GPIO_RESULT_HAL_OK				=	HAL_OK		,
+	eBSP_GPIO_RESULT_HAL_ERROR			=	HAL_ERROR	,
+	eBSP_GPIO_RESULT_HAL_BUSY			=	HAL_BUSY	,
+	eBSP_GPIO_RESULT_HAL_TIMEOUT		=	HAL_TIMEOUT	,
+	eBSP_GPIO_RESULT_INVALID_PORT		=	-1,
+	eBSP_GPIO_RESULT_NULL_HANDLE		=	-2,
+	eBSP_GPIO_RESULT_NULL_CB_FUNC		=	-3,
+	eBSP_GPIO_RESULT_NULL_BUFFER		=	-4,
+	eBSP_GPIO_RESULT_ZERO_LEN			=	-5,
+	eBSP_GPIO_RESULT_BUSY_TX			=	-6,
+	eBSP_GPIO_RESULT_NA_PORT			=	-7,
+	eBSP_GPIO_RESULT_SETTING_OVERFLOW	=	-8,
 	/***** DON'T CROSS THIS LINE *****/
-	eBSP_GPIO_MAX_VALUE					//	2
-}tBSP_GPIO;
+	eBSP_GPIO_RESULT_MAX_VALUE				//
+}tBSP_GPIO_RESULT;
 
-typedef enum
-{
-	eBSP_GPIO_PATTERN_OFF,				//	0
-	eBSP_GPIO_PATTERN_ON,				//	1
-	eBSP_GPIO_PATTERN_BLINK_VERY_FAST,	//	2
-	eBSP_GPIO_PATTERN_BLINK_FAST,		//	3
-	eBSP_GPIO_PATTERN_BLINK_SLOW,		//	4
-	eBSP_GPIO_PATTERN_BLINK_VERY_SLOW,	//	5
-	eBSP_GPIO_PATTERN_BLINK_CUSTOM,		//	6 (TBD)
-}tBSP_GPIO_Pattern;
+typedef	void (*Cb_Gpio)(void);
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -68,12 +69,8 @@ typedef enum
 
 /* Exported functions prototypes ---------------------------------------------*/
 /* USER CODE BEGIN EFP */
-void BSP_GPIO_Init(void);
-void BSP_GPIO_MainStart(void);
-void BSP_GPIO_MainStop(void);
-void BSP_GPIO_MainLoop(void);
-void BSP_GPIO_Start(tBSP_GPIO Gpio, tBSP_GPIO_Pattern Pattern, uint16_t Time);
-void BSP_GPIO_Stop(tBSP_GPIO Gpio);
+tBSP_GPIO_RESULT	BSP_GPIO_Init( GPIO_TypeDef* Port, uint16_t Pin);
+void 				BSP_GPIO_MainLoop( void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
