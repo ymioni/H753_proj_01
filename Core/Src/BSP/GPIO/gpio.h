@@ -1,12 +1,13 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    stm32h7xx_it.h
-  * @brief   This file contains the headers of the interrupt handlers.
+  * @file           : led.h
+  * @brief          : Header for led.c file.
+  *                   This file contains the common defines of the application.
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2024 STMicroelectronics.
+  *
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -18,12 +19,15 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM32H7xx_IT_H
-#define __STM32H7xx_IT_H
+#ifndef __BSP_GPIO_H
+#define __BSP_GPIO_H
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
+
+/* Includes ------------------------------------------------------------------*/
+#include "stm32h7xx_hal.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -32,7 +36,24 @@
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+typedef enum
+{
+	eBSP_GPIO_1_GPIO,						//	0
+	eBSP_GPIO_2_ORANGE,					//	1
+	/***** DON'T CROSS THIS LINE *****/
+	eBSP_GPIO_MAX_VALUE					//	2
+}tBSP_GPIO;
 
+typedef enum
+{
+	eBSP_GPIO_PATTERN_OFF,				//	0
+	eBSP_GPIO_PATTERN_ON,				//	1
+	eBSP_GPIO_PATTERN_BLINK_VERY_FAST,	//	2
+	eBSP_GPIO_PATTERN_BLINK_FAST,		//	3
+	eBSP_GPIO_PATTERN_BLINK_SLOW,		//	4
+	eBSP_GPIO_PATTERN_BLINK_VERY_SLOW,	//	5
+	eBSP_GPIO_PATTERN_BLINK_CUSTOM,		//	6 (TBD)
+}tBSP_GPIO_Pattern;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -46,23 +67,23 @@
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void NMI_Handler(void);
-void HardFault_Handler(void);
-void MemManage_Handler(void);
-void BusFault_Handler(void);
-void UsageFault_Handler(void);
-void SVC_Handler(void);
-void DebugMon_Handler(void);
-void PendSV_Handler(void);
-void SysTick_Handler(void);
-void USART3_IRQHandler(void);
-void EXTI15_10_IRQHandler(void);
 /* USER CODE BEGIN EFP */
-
+void BSP_GPIO_Init(void);
+void BSP_GPIO_MainStart(void);
+void BSP_GPIO_MainStop(void);
+void BSP_GPIO_MainLoop(void);
+void BSP_GPIO_Start(tBSP_GPIO Gpio, tBSP_GPIO_Pattern Pattern, uint16_t Time);
+void BSP_GPIO_Stop(tBSP_GPIO Gpio);
 /* USER CODE END EFP */
+
+/* Private defines -----------------------------------------------------------*/
+
+/* USER CODE BEGIN Private defines */
+
+/* USER CODE END Private defines */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __STM32H7xx_IT_H */
+#endif /* __BSP_GPIO_H */
