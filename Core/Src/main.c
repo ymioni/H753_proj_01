@@ -136,8 +136,17 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  /* USER CODE BEGIN WHILE */
-  BSP_LED_Start(eBSP_LED_1_LED, eBSP_LED_PATTERN_ON, 0);
+  BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_ON, 0);
+  HAL_Delay(1000);
+  BSP_LED_Start(eBSP_LED_2_YELLOW, eBSP_LED_PATTERN_ON, 0);
+  HAL_Delay(1000);
+  BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_OFF, 0);
+  BSP_LED_Start(eBSP_LED_2_YELLOW, eBSP_LED_PATTERN_OFF, 0);
+  BSP_LED_Start(eBSP_LED_3_GREEN, eBSP_LED_PATTERN_ON, 0);
+  HAL_Delay(2000);
+  BSP_LED_Start(eBSP_LED_3_GREEN, eBSP_LED_PATTERN_OFF, 0);
+  BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_ON, 0);
+  HAL_Delay(100);
   BSP_LED_MainStart();
 
   BSP_USART_Init(eBSP_USART_PORT_3, &huart3);
@@ -348,30 +357,30 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOE_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, Green_led_Pin|Red_led_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_1, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(Yellow_led_GPIO_Port, Yellow_led_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PC13 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  /*Configure GPIO pin : B1_button_Pin */
+  GPIO_InitStruct.Pin = B1_button_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(B1_button_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB14 */
-  GPIO_InitStruct.Pin = GPIO_PIN_14;
+  /*Configure GPIO pins : Green_led_Pin Red_led_Pin */
+  GPIO_InitStruct.Pin = Green_led_Pin|Red_led_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PE1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1;
+  /*Configure GPIO pin : Yellow_led_Pin */
+  GPIO_InitStruct.Pin = Yellow_led_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+  HAL_GPIO_Init(Yellow_led_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);

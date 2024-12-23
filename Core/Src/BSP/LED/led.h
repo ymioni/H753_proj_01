@@ -38,10 +38,11 @@ extern "C" {
 /* USER CODE BEGIN ET */
 typedef enum
 {
-	eBSP_LED_1_LED,						//	0
-	eBSP_LED_2_ORANGE,					//	1
+	eBSP_LED_1_RED,						//	0
+	eBSP_LED_2_YELLOW,					//	1
+	eBSP_LED_3_GREEN,					//	2
 	/***** DON'T CROSS THIS LINE *****/
-	eBSP_LED_MAX_VALUE					//	2
+	eBSP_LED_MAX_VALUE					//	3
 }tBSP_LED;
 
 typedef enum

@@ -54,12 +54,14 @@ struct
 	uint16_t			Timer;
 }LED_Data[eBSP_LED_MAX_VALUE]	=	{	{ .Port = GPIOB, .Pin = GPIO_PIN_14, .Pattern	= eBSP_LED_PATTERN_OFF, .Timer	= 0},
 										{ .Port = GPIOE, .Pin = GPIO_PIN_1,  .Pattern	= eBSP_LED_PATTERN_OFF, .Timer	= 0},
+										{ .Port = GPIOB, .Pin = GPIO_PIN_0,  .Pattern	= eBSP_LED_PATTERN_OFF, .Timer	= 0},
 									};
 
 static	bool		Main_Active 		= false;
 static	uint16_t	Main_Time 			= 0;
 static	uint32_t	Main_Time_Target	= 0;
 static	uint8_t		Main_State 			= 0;
+static	uint8_t		Main_Idle_Idx		= 0;
 
 /* USER CODE END PV */
 
@@ -123,11 +125,7 @@ void BSP_LED_MainLoop(void)
 	switch( Main_State)
 	{
 	case	0:
-		Main_Time	=	100;
-		break;
-
-	case	1:
-		Main_Time	=	500;
+		Main_Time	=	250;
 		break;
 
 	default:
@@ -135,12 +133,12 @@ void BSP_LED_MainLoop(void)
 		return;
 	}
 
-	for( tBSP_LED Led = 0; Led < eBSP_LED_MAX_VALUE; Led ++)
-	{
-		HAL_GPIO_TogglePin(LED_Data[Led].Port, LED_Data[Led].Pin);
-	}
+	if( Main_Idle_Idx >= eBSP_LED_MAX_VALUE) Main_Idle_Idx = 0;
+	HAL_GPIO_TogglePin(LED_Data[Main_Idle_Idx].Port, LED_Data[Main_Idle_Idx].Pin);
+	Main_Idle_Idx ++;
+	if( Main_Idle_Idx >= eBSP_LED_MAX_VALUE) Main_Idle_Idx = 0;
+	HAL_GPIO_TogglePin(LED_Data[Main_Idle_Idx].Port, LED_Data[Main_Idle_Idx].Pin);
 
-	Main_State	++;
 	Main_Time_Target = HAL_GetTick() + Main_Time;
 }
 
@@ -150,9 +148,15 @@ void BSP_LED_MainLoop(void)
   */
 void BSP_LED_Start(tBSP_LED Led, tBSP_LED_Pattern Pattern, uint16_t Time)
 {
+	if( Pattern == eBSP_LED_PATTERN_OFF)
+	{
+		BSP_LED_Stop( Led);
+		return;
+	}
+
 	if( Led >= eBSP_LED_MAX_VALUE)	return;
 
-	LED_Data[Led].Pattern	=	eBSP_LED_PATTERN_ON;
+	LED_Data[Led].Pattern	=	Pattern;
 	LED_Data[Led].Timer		=	Time;
 
 	HAL_GPIO_WritePin(LED_Data[Led].Port, LED_Data[Led].Pin, GPIO_PIN_SET);
