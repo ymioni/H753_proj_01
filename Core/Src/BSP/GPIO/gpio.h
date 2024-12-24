@@ -69,7 +69,7 @@ typedef	void (*Cb_Gpio)(void);
 
 /* Exported functions prototypes ---------------------------------------------*/
 /* USER CODE BEGIN EFP */
-tBSP_GPIO_RESULT	BSP_GPIO_Init( GPIO_TypeDef* Port, uint16_t Pin);
+bool				BSP_GPIO_Init( GPIO_TypeDef* Port, uint16_t Pin);
 void 				BSP_GPIO_MainLoop( void);
 /* USER CODE END EFP */
 

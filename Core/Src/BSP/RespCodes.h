@@ -1,8 +1,8 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : peripherals.h
-  * @brief          : Header for peripherals.c file.
+  * @file           : RespCodes.h
+  * @brief          : Header for RespCodes.c file.
   *                   This file contains the common defines of the application.
   ******************************************************************************
   * @attention
@@ -19,8 +19,8 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __BSP_PER_H
-#define __BSP_PER_H
+#ifndef __BSP_RESP_H
+#define __BSP_RESP_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,62 +36,27 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-typedef enum
-{
-	eBSP_PER_TARGET_VOID		,		//	0
-	eBSP_PER_TARGET_SHT40A		,		//	1
-	eBSP_PER_TARGET_STTS22		,		//	2
-	eBSP_PER_TARGET_LPS22D		,		//	3
-	eBSP_PER_TARGET_LIS2MDL		,		//	4
-	eBSP_PER_TARGET_LSM6DSV		,		//	5
-	eBSP_PER_TARGET_LSM6DSO		,		//	6
-	eBSP_PER_TARGET_LIS2DUX		,		//	7
-	/***** DON'T CROSS THIS LINE *****/
-	eBSP_PER_MAX_VALUE_TARGET			//
-}tBSP_PER_Target;
-
-
 typedef	enum
 {
-	eBSP_PER_FUNC_VOID			,		//	0
-	eBSP_PER_FUNC_TEMP			,		//	1
-	eBSP_PER_FUNC_RH			,		//	2
-	eBSP_PER_FUNC_TEMP_RH		,		//	3
-	eBSP_PER_FUNC_HEATER		,		//	4
-	eBSP_PER_FUNC_GET_SN		,		//	5
+	eBSP_RESP_CODE_BSP_OK		= 0,
+	eBSP_RESP_CODE_BSP_ERR		= -1,
+	eBSP_RESP_CODE_HAL_ERR		= -2,
+	eBSP_RESP_CODE_DMA_ERR		= -3,
+	eBSP_RESP_CODE_FLASH_ERR	= -4,
+	eBSP_RESP_CODE_I2C_ERR		= -5,
+	eBSP_RESP_CODE_MDMA_ERR		= -6,
+	eBSP_RESP_CODE_SPI_ERR		= -7,
+	eBSP_RESP_CODE_UART_ERR		= -8,
 	/***** DON'T CROSS THIS LINE *****/
-	eBSP_PER_MAX_VALUE_FUNC				//
-}tBSP_PER_Func;
+	eBSP_RESP_CODE_MAX_VALUE
+}tBSP_RESP_CODES;
 
-
-typedef	enum
+typedef	struct
 {
-	eBSP_PER_PRCSN_VOID			,		//	0
-	eBSP_PER_PRCSN_LOW			,		//	1
-	eBSP_PER_PRCSN_MED			,		//	2
-	eBSP_PER_PRCSN_HIGH			,		//	3
-	/***** DON'T CROSS THIS LINE *****/
-	eBSP_PER_MAX_VALUE_PRCSN			//
-}tBSP_PER_Precision;
+	tBSP_RESP_CODES		BSP_ErrCode;
+	uint32_t			ErrCode;
+}tBSP_RESP_INFO;
 
-typedef struct
-{
-	void *				handle;
-	tBSP_PER_Target		Target;
-	tBSP_PER_Func		Function;
-	tBSP_PER_Precision	Precision;
-	uint16_t			Time_msec;
-	uint16_t			Power_mW;
-}tBSP_PER_DataCmd;
-
-typedef struct
-{
-	float				Temperature;
-	float				Humidity_f;
-	uint8_t				Humidity_i;
-	uint8_t				Address;
-	uint32_t			SerialNumber;
-}tBSP_PER_DataResp;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -106,12 +71,23 @@ typedef struct
 
 /* Exported functions prototypes ---------------------------------------------*/
 /* USER CODE BEGIN EFP */
-float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32_t Value);
+void 				BSP_RespCodes_Init(void);
+tBSP_RESP_INFO*		BSP_RespCodes_GetErr(void);
+bool				BSP_RespCodes_Assert_BSP(bool Condition, uint32_t RespCode);
+bool				BSP_RespCodes_Assert_HAL(bool Condition, tBSP_RESP_CODES RespCode, HAL_StatusTypeDef HAL_Status, void	*handle);
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
 
 /* USER CODE BEGIN Private defines */
+#define  BSP_ERROR_NONE             	(0x00000000U)    /*!< No error                */
+#define  BSP_ERROR_HANDLE_ERR			(0x00000001U)    /*!< */
+#define  BSP_ERROR_PARAM_NULL			(0x00000002U)    /*!< */
+#define  BSP_ERROR_PARAM_ZERO			(0x00000004U)    /*!< */
+#define  BSP_ERROR_PARAM_OVF			(0x00000008U)    /*!< */
+#define  BSP_ERROR_PARAM_NA				(0x00000010U)    /*!< */
+#define	 BSP_ERROR_BUSY					(0x00000020U)    /*!< */
 
 /* USER CODE END Private defines */
 
@@ -119,4 +95,4 @@ float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32
 }
 #endif
 
-#endif /* __BSP_PER_H */
+#endif /* __BSP_RESP_H */

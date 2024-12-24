@@ -135,7 +135,9 @@ void BSP_LED_MainLoop(void)
 
 	if( Main_Idle_Idx >= eBSP_LED_MAX_VALUE) Main_Idle_Idx = 0;
 	HAL_GPIO_TogglePin(LED_Data[Main_Idle_Idx].Port, LED_Data[Main_Idle_Idx].Pin);
+
 	Main_Idle_Idx ++;
+
 	if( Main_Idle_Idx >= eBSP_LED_MAX_VALUE) Main_Idle_Idx = 0;
 	HAL_GPIO_TogglePin(LED_Data[Main_Idle_Idx].Port, LED_Data[Main_Idle_Idx].Pin);
 

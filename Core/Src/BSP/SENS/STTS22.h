@@ -1,7 +1,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : I2C.h
+  * @file           : stts22.h
   * @brief          : Main program body
   ******************************************************************************
   * @attention
@@ -23,15 +23,27 @@
 #include "main.h"
 
 /* USER CODE END Includes */
-#include "..\PER\Peripherals.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef	enum
+{
+	CMD_STTS22_GET_SN						=	0x01,
+	CMD_STTS22_TEMP_H_LIMIT					=	0x02,
+	CMD_STTS22_TEMP_L_LIMIT					=	0x03,
+	CMD_STTS22_CTRL							=	0x04,
+	CMD_STTS22_STATUS						=	0x05,
+	CMD_STTS22_TEMP_L						=	0x06,
+	CMD_STTS22_TEMP_H						=	0x07,
+}tCmd_STTS22;
+
+typedef	void(*tCb_GetData_STTS22)(tBSP_PER_DataResp *Data);
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define I2C_DEVICE_ADDRESS_STTS22		(0x38 << 1)
 
 /* USER CODE END PD */
 
@@ -48,9 +60,9 @@
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-bool			BSP_I2C_Init( void);
-void 			BSP_I2C_MainLoop( void);
-bool			BSP_I2C_Cmd(I2C_HandleTypeDef *handle, tBSP_PER_DataCmd *cmd, tBSP_PER_DataResp *resp);
+bool			BSP_STTS22_Init( tCb_GetData_STTS22	CbFunc);
+void 			BSP_STTS22_MainLoop( void);
+bool			BSP_STTS22_Cmd( tBSP_PER_DataCmd	*cmd);
 
 /* USER CODE END PFP */
 

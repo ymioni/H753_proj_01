@@ -88,6 +88,18 @@ float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32
 		}
 		break;
 
+	case eBSP_PER_TARGET_STTS22:
+		switch( Function)
+		{
+		case	eBSP_PER_FUNC_TEMP:
+			result = Value * 1.0f;
+			break;
+
+		default:
+			break;
+		}
+		break;
+
 	default:
 		break;
 	}

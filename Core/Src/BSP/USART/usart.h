@@ -51,23 +51,6 @@ typedef enum
 	eBSP_USART_MAX_VALUE					//	9
 }tBSP_USART_PORT;
 
-typedef enum
-{
-	eBSP_USART_RESULT_HAL_OK			=	HAL_OK		,
-	eBSP_USART_RESULT_HAL_ERROR			=	HAL_ERROR	,
-	eBSP_USART_RESULT_HAL_BUSY			=	HAL_BUSY	,
-	eBSP_USART_RESULT_HAL_TIMEOUT		=	HAL_TIMEOUT	,
-	eBSP_USART_RESULT_INVALID_PORT		=	-1,
-	eBSP_USART_RESULT_NULL_HANDLE		=	-2,
-	eBSP_USART_RESULT_NULL_CB_FUNC		=	-3,
-	eBSP_USART_RESULT_NULL_BUFFER		=	-4,
-	eBSP_USART_RESULT_ZERO_LEN			=	-5,
-	eBSP_USART_RESULT_BUSY_TX			=	-6,
-	eBSP_USART_RESULT_NA_PORT			=	-7,
-	/***** DON'T CROSS THIS LINE *****/
-	eBSP_USART_RESULT_MAX_VALUE				//
-}tBSP_USART_RESULT;
-
 typedef	void (*Cb_UsartTxCplt)(void);
 typedef	void (*Cb_UsartRxCplt)(uint8_t Byte);
 /* USER CODE END ET */
@@ -84,10 +67,10 @@ typedef	void (*Cb_UsartRxCplt)(uint8_t Byte);
 
 /* Exported functions prototypes ---------------------------------------------*/
 /* USER CODE BEGIN EFP */
-tBSP_USART_RESULT	BSP_USART_Init( tBSP_USART_PORT Port, UART_HandleTypeDef *handle);
-void 				BSP_USART_MainLoop( void);
-tBSP_USART_RESULT	BSP_USART_Send( tBSP_USART_PORT Port, Cb_UsartTxCplt CbFunc, void *buf, uint16_t len);
-tBSP_USART_RESULT	BSP_USART_Receive(tBSP_USART_PORT Port, Cb_UsartRxCplt CbFunc);
+bool			BSP_USART_Init( tBSP_USART_PORT Port, UART_HandleTypeDef *handle);
+void 			BSP_USART_MainLoop( void);
+bool			BSP_USART_Send( tBSP_USART_PORT Port, Cb_UsartTxCplt CbFunc, void *buf, uint16_t len);
+bool			BSP_USART_Receive(tBSP_USART_PORT Port, Cb_UsartRxCplt CbFunc);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

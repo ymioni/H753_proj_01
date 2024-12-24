@@ -26,6 +26,7 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Usart.h"
+#include "..\RespCodes.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -82,23 +83,27 @@ static  uint32_t		Main_RxCnt			= 0;
   * @brief
   * @retval
   */
-tBSP_USART_RESULT BSP_USART_Init(tBSP_USART_PORT Port, UART_HandleTypeDef *handle)
+bool			BSP_USART_Init( tBSP_USART_PORT Port, UART_HandleTypeDef *handle)
 {
-	if( Port >= eBSP_USART_MAX_VALUE)		return eBSP_USART_RESULT_INVALID_PORT;
-	if( handle == NULL)						return eBSP_USART_RESULT_NULL_HANDLE;
+	if( BSP_RespCodes_Assert_BSP((Port >= eBSP_USART_MAX_VALUE), BSP_ERROR_PARAM_OVF))	return false;
+	if( BSP_RespCodes_Assert_BSP((handle == NULL), BSP_ERROR_HANDLE_ERR))				return false;
 
+	USART_Data[Port].Port = NULL;
 	switch( Port)
 	{
 		case	eBSP_USART_PORT_1:	USART_Data[Port].Port = USART1;	break;
 		case	eBSP_USART_PORT_2:	USART_Data[Port].Port = USART2;	break;
 		case	eBSP_USART_PORT_3:	USART_Data[Port].Port = USART3;	break;
-		case	eBSP_USART_PORT_4:									return eBSP_USART_RESULT_NA_PORT;
-		case	eBSP_USART_PORT_5:									return eBSP_USART_RESULT_NA_PORT;
+//		case	eBSP_USART_PORT_4:									return false;
+//		case	eBSP_USART_PORT_5:									return false;
 		case	eBSP_USART_PORT_6:	USART_Data[Port].Port = USART6;	break;
-		case	eBSP_USART_PORT_7:									return eBSP_USART_RESULT_NA_PORT;
-		case	eBSP_USART_PORT_8:									return eBSP_USART_RESULT_NA_PORT;
-		default:													return eBSP_USART_RESULT_INVALID_PORT;
+//		case	eBSP_USART_PORT_7:									return false;
+//		case	eBSP_USART_PORT_8:									return false;
+		default: break;
 	}
+
+	if( BSP_RespCodes_Assert_BSP((USART_Data[Port].Port == NULL), BSP_ERROR_PARAM_NA))	return false;
+
 	USART_Data[Port].Handle = handle;
 
 	Main_Active 		= true;
@@ -107,14 +112,14 @@ tBSP_USART_RESULT BSP_USART_Init(tBSP_USART_PORT Port, UART_HandleTypeDef *handl
 	Main_State 			= 0;
 	Main_Port			= eBSP_USART_PORT_NONE;
 
-	return eBSP_USART_RESULT_HAL_OK;
+	return true;
 }
 
 /**
   * @brief
   * @retval
   */
-void BSP_USART_MainLoop( void)
+void 			BSP_USART_MainLoop( void)
 {
 	if( Main_Active == false)	return;
 
@@ -147,14 +152,14 @@ void BSP_USART_MainLoop( void)
   * @brief
   * @retval
   */
-tBSP_USART_RESULT BSP_USART_Send(tBSP_USART_PORT Port, Cb_UsartTxCplt CbFunc, void *buf, uint16_t len)
+bool			BSP_USART_Send(tBSP_USART_PORT Port, Cb_UsartTxCplt CbFunc, void *buf, uint16_t len)
 {
-	if( Port >= eBSP_USART_MAX_VALUE)		return eBSP_USART_RESULT_INVALID_PORT;
-	if( USART_Data[Port].Handle == NULL)	return eBSP_USART_RESULT_NULL_HANDLE;
-	if( CbFunc == NULL)						return eBSP_USART_RESULT_NULL_CB_FUNC;
-	if( buf == NULL)						return eBSP_USART_RESULT_NULL_BUFFER;
-	if( len == 0)							return eBSP_USART_RESULT_ZERO_LEN;
-	if( USART_Data[Port].TxBusy == true)	return eBSP_USART_RESULT_BUSY_TX;
+	if( BSP_RespCodes_Assert_BSP((Port >= eBSP_USART_MAX_VALUE), BSP_ERROR_PARAM_OVF))		return false;
+	if( BSP_RespCodes_Assert_BSP((USART_Data[Port].Handle == NULL), BSP_ERROR_HANDLE_ERR))	return false;
+	if( BSP_RespCodes_Assert_BSP((CbFunc == NULL), BSP_ERROR_PARAM_NULL))					return false;
+	if( BSP_RespCodes_Assert_BSP((buf == NULL), BSP_ERROR_PARAM_NULL))						return false;
+	if( BSP_RespCodes_Assert_BSP((len == 0), BSP_ERROR_PARAM_ZERO))							return false;
+	if( BSP_RespCodes_Assert_BSP((USART_Data[Port].TxBusy == true), BSP_ERROR_BUSY))		return false;
 
 	memset( Main_Buf, 0, sizeof( Main_Buf));
 	memcpy( Main_Buf, buf, len);
@@ -173,11 +178,11 @@ tBSP_USART_RESULT BSP_USART_Send(tBSP_USART_PORT Port, Cb_UsartTxCplt CbFunc, vo
   * @brief
   * @retval
   */
-tBSP_USART_RESULT BSP_USART_Receive(tBSP_USART_PORT Port, Cb_UsartRxCplt CbFunc)
+bool			BSP_USART_Receive(tBSP_USART_PORT Port, Cb_UsartRxCplt CbFunc)
 {
-	if( Port >= eBSP_USART_MAX_VALUE)		return eBSP_USART_RESULT_INVALID_PORT;
-	if( USART_Data[Port].Handle == NULL)	return eBSP_USART_RESULT_NULL_HANDLE;
-	if( CbFunc == NULL)						return eBSP_USART_RESULT_NULL_CB_FUNC;
+	if( BSP_RespCodes_Assert_BSP((Port >= eBSP_USART_MAX_VALUE), BSP_ERROR_PARAM_OVF))		return false;
+	if( BSP_RespCodes_Assert_BSP((USART_Data[Port].Handle == NULL), BSP_ERROR_HANDLE_ERR))	return false;
+	if( BSP_RespCodes_Assert_BSP((CbFunc == NULL), BSP_ERROR_PARAM_NULL))					return false;
 
 	USART_Data[Port].CbFunc_RxCplt = CbFunc;
 	HAL_StatusTypeDef	result =	HAL_UART_Receive_IT(USART_Data[Port].Handle, &Main_RxByte, 1);
@@ -185,7 +190,7 @@ tBSP_USART_RESULT BSP_USART_Receive(tBSP_USART_PORT Port, Cb_UsartRxCplt CbFunc)
 }
 
 // Callback for TX complete
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+void 			HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
 	tBSP_USART_PORT	Port;
 
@@ -199,7 +204,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 }
 
 // Callback for RX complete
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+void 			HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     Main_RxCnt ++;
 
@@ -214,7 +219,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 }
 
 // Callback for Error
-void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+void 			HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
     __HAL_UART_FLUSH_DRREGISTER(huart);
 
@@ -225,7 +230,7 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 }
 
 // Retarget printf to USART3
-int __io_putchar(int ch)
+int 			__io_putchar(int ch)
 {
 	if( USART_Data[eBSP_USART_PORT_3].Handle == NULL)
 		return 0;
@@ -235,7 +240,7 @@ int __io_putchar(int ch)
 }
 
 // Support for standard printf
-int fputc(int ch, FILE *f)
+int 			fputc(int ch, FILE *f)
 {
     return __io_putchar(ch);
 }

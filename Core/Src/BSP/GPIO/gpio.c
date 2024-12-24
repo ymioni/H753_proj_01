@@ -26,6 +26,7 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Gpio.h"
+#include "..\RespCodes.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -77,9 +78,9 @@ static	uint8_t			Main_State 			= 0;
   * @brief
   * @retval
   */
-tBSP_GPIO_RESULT BSP_GPIO_Init(GPIO_TypeDef* Port, uint16_t Pin)
+bool			BSP_GPIO_Init(GPIO_TypeDef* Port, uint16_t Pin)
 {
-	if( GPIO_Data_idx >= BSP_GPIO_MAX_SETTINGS)	return eBSP_GPIO_RESULT_SETTING_OVERFLOW;
+	if( BSP_RespCodes_Assert_BSP((GPIO_Data_idx >= BSP_GPIO_MAX_SETTINGS), BSP_ERROR_PARAM_OVF))	return false;
 
 	GPIO_Data[GPIO_Data_idx].Port	= Port;
 	GPIO_Data[GPIO_Data_idx].Pin	= Pin;
@@ -90,7 +91,7 @@ tBSP_GPIO_RESULT BSP_GPIO_Init(GPIO_TypeDef* Port, uint16_t Pin)
 	Main_Time_Target	= 0;
 	Main_State 			= 0;
 
-	return eBSP_GPIO_RESULT_HAL_OK;
+	return true;
 }
 
 /**

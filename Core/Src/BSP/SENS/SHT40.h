@@ -1,7 +1,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : I2C.h
+  * @file           : sht40.h
   * @brief          : Main program body
   ******************************************************************************
   * @attention
@@ -23,15 +23,31 @@
 #include "main.h"
 
 /* USER CODE END Includes */
-#include "..\PER\Peripherals.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef	enum
+{
+	CMD_SHT40_GET_TEMP_RH_PRECISION_HIGH	=	0xFD,
+	CMD_SHT40_GET_TEMP_RH_PRECISION_MED		=	0xF6,
+	CMD_SHT40_GET_TEMP_RH_PRECISION_LO		=	0xE0,
+	CMD_SHT40_GET_SN						=	0x89,
+	CMD_SHT40_RESET							=	0x94,
+	CMD_SHT40_HEATER_200MW_1000MSEC			=	0x39,
+	CMD_SHT40_HEATER_200MW_100MSEC			=	0x2F,
+	CMD_SHT40_HEATER_110MW_1000MSEC			=	0x2F,
+	CMD_SHT40_HEATER_110MW_100MSEC			=	0x24,
+	CMD_SHT40_HEATER_20MW_1000MSEC			=	0x1E,
+	CMD_SHT40_HEATER_20MW_100MSEC			=	0x15,
+}tCmd_SHT40;
+
+typedef	void(*tCb_GetData_SHT40)(tBSP_PER_DataResp *Data);
 
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define I2C_DEVICE_ADDRESS_SHT40		(0x44 << 1)
 
 /* USER CODE END PD */
 
@@ -48,9 +64,9 @@
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-bool			BSP_I2C_Init( void);
-void 			BSP_I2C_MainLoop( void);
-bool			BSP_I2C_Cmd(I2C_HandleTypeDef *handle, tBSP_PER_DataCmd *cmd, tBSP_PER_DataResp *resp);
+bool			BSP_SHT40_Init( tCb_GetData_SHT40	CbFunc);
+void 			BSP_SHT40_MainLoop( void);
+bool			BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd);
 
 /* USER CODE END PFP */
 
