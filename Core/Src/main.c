@@ -164,10 +164,15 @@ int main(void)
 
   // I2C (X-Nucleo --> peripherals)
   {
-	  tBSP_PER_DataCmd	cmd = {	.Target = eBSP_PER_TARGET_SHT40A,
-	  	  	  	  	  	  	  	.Function = eBSP_PER_FUNC_TEMP_RH,
-								.Precision = eBSP_PER_PRCSN_HIGH};
 	  tBSP_PER_DataResp	resp;
+
+//	  tBSP_PER_DataCmd	cmd = {	.Target = eBSP_PER_TARGET_SHT40A,
+//	  	  	  	  	  	  	  	.Function = eBSP_PER_FUNC_TEMP_RH,
+//								.Precision = eBSP_PER_PRCSN_HIGH};
+
+	  tBSP_PER_DataCmd	cmd = {	.Target = eBSP_PER_TARGET_STTS22,
+	  	  	  	  	  	  	  	.Function = eBSP_PER_FUNC_GET_SN,
+								.Precision = eBSP_PER_PRCSN_VOID};
 
 	  HAL_Delay(100);
 	  int res = BSP_I2C_Cmd(&hi2c1, &cmd, &resp);

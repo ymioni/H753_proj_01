@@ -32,6 +32,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define I2C1_DEVICE_ADDRESS_SHT40	(0x44 << 1)
+#define I2C1_DEVICE_ADDRESS_STTS22	(0x38 << 1)
 
 /* USER CODE END PD */
 

@@ -51,7 +51,12 @@ struct __PACKED
 	uint8_t		CRC_Temperature;
 	uint16_t	Humidity;
 	uint8_t		CRC_Humidity;
-}Data;
+}Data_SHT40;
+
+struct __PACKED
+{
+	uint8_t		SerialNumber;
+}Data_STTS22;
 
 static	bool				Main_Active 		= false;
 static	uint16_t			Main_Time 			= 0;
@@ -148,25 +153,47 @@ int				BSP_I2C_Cmd(I2C_HandleTypeDef *handle, tBSP_PER_DataCmd *cmd, tBSP_PER_Da
 
 	HAL_Delay(Main_Delay);
 
-	if (HAL_I2C_Master_Receive(handle, address, (uint8_t *)&Data, sizeof( Data), Main_Timeout) != HAL_OK)
-    {
-    	BSP_I2C_Error(handle);
-    	return -7;
-    }
-
-	BSP_Util_SwapBytes(&Data.Temperature, sizeof( Data.Temperature));
-	BSP_Util_SwapBytes(&Data.Humidity, sizeof( Data.Humidity));
-
-	resp->Temperature	=	BSP_Per_Convert( eBSP_PER_TARGET_SHT40A, eBSP_PER_FUNC_TEMP, Data.Temperature);
-	resp->Humidity_f	=	BSP_Per_Convert( eBSP_PER_TARGET_SHT40A, eBSP_PER_FUNC_RH, Data.Humidity);
-	resp->Humidity_i	= 	resp->Humidity_f;
 	resp->Address		=	address;
+	if( cmd->Target == eBSP_PER_TARGET_SHT40A)
+	{
+		if (HAL_I2C_Master_Receive(handle, address, (uint8_t *)&Data_SHT40, sizeof( Data_SHT40), Main_Timeout) != HAL_OK)
+	    {
+	    	BSP_I2C_Error(handle);
+	    	return -7;
+	    }
+
+		BSP_Util_SwapBytes(&Data_SHT40.Temperature, sizeof( Data_SHT40.Temperature));
+		BSP_Util_SwapBytes(&Data_SHT40.Humidity, sizeof( Data_SHT40.Humidity));
+
+		resp->Temperature	=	BSP_Per_Convert( eBSP_PER_TARGET_SHT40A, eBSP_PER_FUNC_TEMP, Data_SHT40.Temperature);
+		resp->Humidity_f	=	BSP_Per_Convert( eBSP_PER_TARGET_SHT40A, eBSP_PER_FUNC_RH, Data_SHT40.Humidity);
+		resp->Humidity_i	= 	resp->Humidity_f;
+	}
+
+	if( cmd->Target == eBSP_PER_TARGET_STTS22)
+	{
+		if (HAL_I2C_Master_Receive(handle, address, (uint8_t *)&Data_STTS22, sizeof( Data_STTS22), Main_Timeout) != HAL_OK)
+	    {
+	    	BSP_I2C_Error(handle);
+	    	return -7;
+	    }
+
+		resp->SerialNumber	=	Data_STTS22.SerialNumber;
+	}
+
+	if( cmd->Function == eBSP_PER_FUNC_TEMP_RH)
+	{
+		printf("Temperature: %.2fC\n", resp->Temperature);
+		printf("Humidity: %d%%\n\n", resp->Humidity_i);
+	}
+
+	if( cmd->Function == eBSP_PER_FUNC_GET_SN)
+	{
+		printf("S/N: %.2lX\n", resp->SerialNumber);
+	}
 
 	Main_cmd	= *cmd;
 	Main_resp	= *resp;
-
-	printf("Temperature: %.2fC\n", resp->Temperature);
-	printf("Humidity: %d%%\n\n", resp->Humidity_i);
 
     return 1;
 }
@@ -193,6 +220,10 @@ static	uint8_t	BSP_I2C_GetAddress( tBSP_PER_Target Target)
 	{
 	case	eBSP_PER_TARGET_SHT40A:
 		address =	I2C1_DEVICE_ADDRESS_SHT40;
+	    break;
+
+	case	eBSP_PER_TARGET_STTS22:
+		address =	I2C1_DEVICE_ADDRESS_STTS22;
 	    break;
 
 	default:
@@ -226,6 +257,20 @@ static	uint8_t	BSP_I2C_GetCmd( tBSP_PER_Target Target, tBSP_PER_Func Function, t
 	    		break;
 	    	}
 	    	break;
+
+	    default:
+	    	break;
+	    }
+		break;
+
+	case	eBSP_PER_TARGET_STTS22:
+	    switch( Function)
+	    {
+		case	eBSP_PER_FUNC_GET_SN:
+		cmd = 0x01;
+		Main_Timeout	= 1000;
+		Main_Delay		= 50;
+		break;
 
 	    default:
 	    	break;
