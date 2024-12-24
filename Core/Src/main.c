@@ -24,6 +24,9 @@
 #include ".\LED\Led.h"
 #include ".\USART\Usart.h"
 #include ".\GPIO\Gpio.h"
+#include ".\I2C\I2C.h"
+#include ".\PER\Peripherals.h"
+#include ".\Util\Util.h"
 
 /* USER CODE END Includes */
 
@@ -44,6 +47,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+I2C_HandleTypeDef hi2c1;
+
 IWDG_HandleTypeDef hiwdg1;
 
 RTC_HandleTypeDef hrtc;
@@ -63,6 +68,7 @@ static void MX_GPIO_Init(void);
 static void MX_IWDG1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -131,7 +137,9 @@ int main(void)
   MX_IWDG1_Init();
   MX_RTC_Init();
   MX_USART3_UART_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  // LEDs
   BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_ON, 0);
   HAL_Delay(1000);
   BSP_LED_Start(eBSP_LED_2_YELLOW, eBSP_LED_PATTERN_ON, 0);
@@ -145,13 +153,30 @@ int main(void)
   HAL_Delay(100);
   BSP_LED_MainStart();
 
+  // USART
   BSP_USART_Init(eBSP_USART_PORT_3, &huart3);
 //  Usart_RxBuf[64];
   Usart_RxBufIdx = 0;
   Usart_RxBufIgnore = false;
-  char	String[] = "ABCD\n";
+  char	String[] = "START\n\n";
   BSP_USART_Receive(eBSP_USART_PORT_3, Main_USART_RxCplt);
   BSP_USART_Send(eBSP_USART_PORT_3, Main_USART_TxCplt, String, strlen(String));
+
+  // I2C (X-Nucleo --> peripherals)
+  {
+	  tBSP_PER_DataCmd	cmd = {	.Target = eBSP_PER_TARGET_SHT40A,
+	  	  	  	  	  	  	  	.Function = eBSP_PER_FUNC_TEMP_RH,
+								.Precision = eBSP_PER_PRCSN_HIGH};
+	  tBSP_PER_DataResp	resp;
+
+	  HAL_Delay(100);
+	  int res = BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
+	  if( res < 0)
+	  {
+		  printf("BSP_I2C_Cmd FAILED (%d)\n", res);
+	  }
+  }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -166,6 +191,7 @@ int main(void)
 	  BSP_LED_MainLoop();
 	  BSP_USART_MainLoop();
 	  BSP_GPIO_MainLoop();
+	  BSP_I2C_MainLoop();
   }
     /* USER CODE END WHILE */
 
@@ -223,6 +249,54 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.Timing = 0x00300F38;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
 }
 
 /**

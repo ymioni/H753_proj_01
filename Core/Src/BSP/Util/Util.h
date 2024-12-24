@@ -1,13 +1,13 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
+  * @file           : util.h
+  * @brief          : Header for util.c file.
   *                   This file contains the common defines of the application.
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2024 STMicroelectronics.
+  *
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -19,8 +19,8 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __MAIN_H
-#define __MAIN_H
+#ifndef __BSP_UTIL_H
+#define __BSP_UTIL_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,15 +31,10 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdbool.h>
-#include <string.h>
-#include <stdio.h>
-#include <float.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -53,22 +48,11 @@ extern "C" {
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler(void);
-
 /* USER CODE BEGIN EFP */
-
+void 				BSP_Util_SwapBytes( void *src, uint8_t size);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define B1_button_Pin GPIO_PIN_13
-#define B1_button_GPIO_Port GPIOC
-#define B1_button_EXTI_IRQn EXTI15_10_IRQn
-#define Green_led_Pin GPIO_PIN_0
-#define Green_led_GPIO_Port GPIOB
-#define Red_led_Pin GPIO_PIN_14
-#define Red_led_GPIO_Port GPIOB
-#define Yellow_led_Pin GPIO_PIN_1
-#define Yellow_led_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 
@@ -78,4 +62,4 @@ void Error_Handler(void);
 }
 #endif
 
-#endif /* __MAIN_H */
+#endif /* __BSP_UTIL_H */
