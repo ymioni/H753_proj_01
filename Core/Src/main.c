@@ -174,19 +174,19 @@ int main(void)
   {
 	  tBSP_PER_DataResp	resp;
 
-//	  tBSP_PER_DataCmd	cmd = {	.Target = eBSP_PER_TARGET_SHT40A,
-//	  	  	  	  	  	  	  	.Function = eBSP_PER_FUNC_TEMP_RH,
-//								.Precision = eBSP_PER_PRCSN_HIGH};
-
-	  tBSP_PER_DataCmd	cmd = {	.Target = eBSP_PER_TARGET_STTS22,
-	  	  	  	  	  	  	  	.Function = eBSP_PER_FUNC_TEMP,
-								.Precision = eBSP_PER_PRCSN_VOID};
-
 	  HAL_Delay(100);
-	  int res = BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-	  if( res < 0)
 	  {
-		  printf("BSP_I2C_Cmd FAILED (%d)\n", res);
+	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_SHT40A,
+								.Function = eBSP_PER_FUNC_TEMP_RH,
+								.Precision = eBSP_PER_PRCSN_HIGH};
+	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
+	  }
+
+	  {
+	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_STTS22,
+								.Function = eBSP_PER_FUNC_TEMP,
+								.Precision = eBSP_PER_PRCSN_VOID};
+	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
 	  }
   }
 

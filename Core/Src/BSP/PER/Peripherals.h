@@ -62,6 +62,7 @@ typedef	enum
 	eBSP_PER_FUNC_GET_CTRL		,		//	6
 	eBSP_PER_FUNC_SET_CTRL		,		//	7
 	eBSP_PER_FUNC_GET_STATUS	,		//	8
+	eBSP_PER_FUNC_RESET			,		//	9
 	/***** DON'T CROSS THIS LINE *****/
 	eBSP_PER_MAX_VALUE_FUNC				//
 }tBSP_PER_Func;

@@ -136,8 +136,9 @@ bool			BSP_STTS22_Init( I2C_HandleTypeDef *handle, tCb_GetData_STTS22	CbFunc)
 	Main_Target	=	0;
 	Main_State	=	0;
 
-	// MANDATORY! Don't delete this block
 	Main_Per_DataCmd.handle		=	handle;
+
+	// MANDATORY! Don't delete this block
 	Main_Per_DataCmd.Function	=	eBSP_PER_FUNC_SET_CTRL;
 	Main_Per_DataCmd.Control	=	Main_Setting_Ctrl;
 	BSP_STTS22_Cmd( &Main_Per_DataCmd);
