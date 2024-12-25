@@ -145,7 +145,7 @@ int main(void)
   BSP_RespCodes_Init();
 
   // BSP
-  BSP_I2C_Init();
+  BSP_I2C_Init(&hi2c1);
 
   // LEDs
   BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_ON, 0);
@@ -174,13 +174,13 @@ int main(void)
   {
 	  tBSP_PER_DataResp	resp;
 
-	  tBSP_PER_DataCmd	cmd = {	.Target = eBSP_PER_TARGET_SHT40A,
-	  	  	  	  	  	  	  	.Function = eBSP_PER_FUNC_TEMP_RH,
-								.Precision = eBSP_PER_PRCSN_HIGH};
-
-//	  tBSP_PER_DataCmd	cmd = {	.Target = eBSP_PER_TARGET_STTS22,
+//	  tBSP_PER_DataCmd	cmd = {	.Target = eBSP_PER_TARGET_SHT40A,
 //	  	  	  	  	  	  	  	.Function = eBSP_PER_FUNC_TEMP_RH,
-//								.Precision = eBSP_PER_PRCSN_VOID};
+//								.Precision = eBSP_PER_PRCSN_HIGH};
+
+	  tBSP_PER_DataCmd	cmd = {	.Target = eBSP_PER_TARGET_STTS22,
+	  	  	  	  	  	  	  	.Function = eBSP_PER_FUNC_TEMP,
+								.Precision = eBSP_PER_PRCSN_VOID};
 
 	  HAL_Delay(100);
 	  int res = BSP_I2C_Cmd(&hi2c1, &cmd, &resp);

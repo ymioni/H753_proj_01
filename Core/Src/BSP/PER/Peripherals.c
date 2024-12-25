@@ -92,8 +92,11 @@ float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32
 		switch( Function)
 		{
 		case	eBSP_PER_FUNC_TEMP:
-			result = Value * 1.0f;
-			break;
+		if( Value < 0x8000)
+			result = (Value / 100.0);
+		else
+			result = (((int)Value - 0x10000) / 100.0);
+		break;
 
 		default:
 			break;

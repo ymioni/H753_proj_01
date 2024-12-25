@@ -59,6 +59,9 @@ typedef	enum
 	eBSP_PER_FUNC_TEMP_RH		,		//	3
 	eBSP_PER_FUNC_HEATER		,		//	4
 	eBSP_PER_FUNC_GET_SN		,		//	5
+	eBSP_PER_FUNC_GET_CTRL		,		//	6
+	eBSP_PER_FUNC_SET_CTRL		,		//	7
+	eBSP_PER_FUNC_GET_STATUS	,		//	8
 	/***** DON'T CROSS THIS LINE *****/
 	eBSP_PER_MAX_VALUE_FUNC				//
 }tBSP_PER_Func;
@@ -82,6 +85,7 @@ typedef struct
 	tBSP_PER_Precision	Precision;
 	uint16_t			Time_msec;
 	uint16_t			Power_mW;
+	uint16_t			Control;
 }tBSP_PER_DataCmd;
 
 typedef struct
@@ -91,6 +95,8 @@ typedef struct
 	uint8_t				Humidity_i;
 	uint8_t				Address;
 	uint32_t			SerialNumber;
+	uint8_t				Control;
+	uint8_t				Status;
 }tBSP_PER_DataResp;
 /* USER CODE END ET */
 
@@ -112,7 +118,8 @@ float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32
 /* Private defines -----------------------------------------------------------*/
 
 /* USER CODE BEGIN Private defines */
-
+#define	BSP_GET				0
+#define	BSP_SET				1
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

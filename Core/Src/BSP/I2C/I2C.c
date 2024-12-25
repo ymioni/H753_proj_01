@@ -69,21 +69,31 @@ static void			BSP_I2C_Cb_GetData_STTS22( tBSP_PER_DataResp *Data);
   * @brief
   * @retval
   */
-bool			BSP_I2C_Init( void)
+bool			BSP_I2C_Init( I2C_HandleTypeDef *handle)
 {
-	BSP_SHT40_Init( BSP_I2C_Cb_GetData_SHT40);
-	BSP_STTS22_Init( BSP_I2C_Cb_GetData_STTS22);
+	BSP_SHT40_Init( handle, BSP_I2C_Cb_GetData_SHT40);
+	BSP_STTS22_Init( handle, BSP_I2C_Cb_GetData_STTS22);
 	return true;
 }
 
 static void			BSP_I2C_Cb_GetData_SHT40( tBSP_PER_DataResp *Data)
 {
-	printf("CbFunc OK!!! T:%.2f H:%d\n\n", Data->Temperature, Data->Humidity_i);
+	printf("CbFunc OK!!! Addr:%.2X, SN:%lX, Temp:%.2f, H:%d\n\n",
+			Data->Address,
+			Data->SerialNumber,
+			Data->Temperature,
+			Data->Humidity_i);
 }
 
 static void			BSP_I2C_Cb_GetData_STTS22( tBSP_PER_DataResp *Data)
 {
-	printf("CbFunc OK!!! T:%.2f SN %.2lX\n\n", Data->Temperature, Data->SerialNumber);
+	printf("CbFunc OK!!! Addr:%.2X, SN:%lX, CTRL:%.2X, STAT:%.2X, Temp:%.2f, H:%d\n\n",
+			Data->Address,
+			Data->SerialNumber,
+			Data->Control,
+			Data->Status,
+			Data->Temperature,
+			Data->Humidity_i);
 }
 
 

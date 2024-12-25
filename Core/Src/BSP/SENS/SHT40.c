@@ -91,7 +91,7 @@ static	bool	BSP_SHT40_Transaction( void);
   * @brief
   * @retval
   */
-bool			BSP_SHT40_Init( tCb_GetData_SHT40	CbFunc)
+bool			BSP_SHT40_Init( I2C_HandleTypeDef *handle, tCb_GetData_SHT40	CbFunc)
 {
 	if( BSP_RespCodes_Assert_BSP((CbFunc == NULL), BSP_ERROR_PARAM_NULL))				return false;
 
@@ -136,7 +136,7 @@ bool			BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd)
 {
 	bool	result = true;
 
-	printf("BSP_SHT40_Cmd (%d %d)\n", cmd->Function, cmd->Precision);
+	// printf("BSP_SHT40_Cmd (%d %d)\n", cmd->Function, cmd->Precision);
 
 	switch(cmd->Function)
 	{
@@ -165,14 +165,14 @@ bool			BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd)
 	default:	result = false;	break;
 	}
 
-	printf("[1] result (%d)\n", result);
+	// printf("[1] result (%d)\n", result);
 
 	if( result == true)
 	{
 		Main_Handle	=	cmd->handle;
 
 		result = BSP_SHT40_Transaction();
-		printf("[2] result (%d)\n", result);
+		// printf("[2] result (%d)\n", result);
 		if( result == true)
 		{
 			Main_Active	=	true;
@@ -192,13 +192,13 @@ static	bool	BSP_SHT40_Transaction(void)
 	HAL_StatusTypeDef	HAL_Result;
 
 	HAL_Result = HAL_I2C_Master_Transmit(Main_Handle, I2C_DEVICE_ADDRESS_SHT40, &Main_Cmd, 1, Main_Timeout);
-	printf("[1] HAL_I2C_Master_Transmit = %d\n", HAL_Result);
+	// printf("[1] HAL_I2C_Master_Transmit = %d\n", HAL_Result);
 
 	if( HAL_Result == HAL_OK)
 	{
 		HAL_Delay(Main_Delay);
 		HAL_Result = HAL_I2C_Master_Receive(Main_Handle, I2C_DEVICE_ADDRESS_SHT40, Main_RxBuf, Main_RxLen, Main_Timeout);
-		printf("[2] HAL_I2C_Master_Receive = %d\n", HAL_Result);
+		// printf("[2] HAL_I2C_Master_Receive = %d\n", HAL_Result);
 	}
 
 	if( HAL_Result == HAL_OK)
