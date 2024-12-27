@@ -28,6 +28,7 @@
 #include "..\RespCodes.h"
 #include ".\SENS\SHT40.h"
 #include ".\SENS\STTS22.h"
+#include ".\SENS\LPS22D.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,6 +59,7 @@ static	tBSP_PER_DataResp	Main_resp	= {0};
 /* USER CODE BEGIN PFP */
 static void			BSP_I2C_Cb_GetData_SHT40( tBSP_PER_DataResp *Data);
 static void			BSP_I2C_Cb_GetData_STTS22( tBSP_PER_DataResp *Data);
+static void			BSP_I2C_Cb_GetData_LPS22D( tBSP_PER_DataResp *Data);
 
 /* USER CODE END PFP */
 
@@ -73,12 +75,13 @@ bool			BSP_I2C_Init( I2C_HandleTypeDef *handle)
 {
 	BSP_SHT40_Init( handle, BSP_I2C_Cb_GetData_SHT40);
 	BSP_STTS22_Init( handle, BSP_I2C_Cb_GetData_STTS22);
+	BSP_LPS22D_Init( handle, BSP_I2C_Cb_GetData_LPS22D);
 	return true;
 }
 
 static void			BSP_I2C_Cb_GetData_SHT40( tBSP_PER_DataResp *Data)
 {
-	printf("[SHT40A] CbFunc OK!!! Addr:%.2X, SN:%lX, Temp:%.2f, H:%d\n\n",
+	printf("[SHT40A] CbFunc OK!!! Addr:%.2X, SN:%lX, Temp:%.2f, H:%d\n",
 			Data->Address,
 			Data->SerialNumber,
 			Data->Temperature,
@@ -87,13 +90,20 @@ static void			BSP_I2C_Cb_GetData_SHT40( tBSP_PER_DataResp *Data)
 
 static void			BSP_I2C_Cb_GetData_STTS22( tBSP_PER_DataResp *Data)
 {
-	printf("[STTS22] CbFunc OK!!! Addr:%.2X, SN:%lX, CTRL:%.2X, STAT:%.2X, Temp:%.2f, H:%d\n\n",
+	printf("[STTS22] CbFunc OK!!! Addr:%.2X, SN:%lX, CTRL:%.2X, STAT:%.2X, Temp:%.2f, H:%d\n",
 			Data->Address,
 			Data->SerialNumber,
 			Data->Control,
 			Data->Status,
 			Data->Temperature,
 			Data->Humidity_i);
+}
+
+static void			BSP_I2C_Cb_GetData_LPS22D( tBSP_PER_DataResp *Data)
+{
+	printf("[LPS22D] CbFunc OK!!! Addr:%.2X, SN:%lX\n",
+			Data->Address,
+			Data->SerialNumber);
 }
 
 
@@ -105,6 +115,7 @@ void 			BSP_I2C_MainLoop( void)
 {
 	BSP_SHT40_MainLoop();
 	BSP_STTS22_MainLoop();
+	BSP_LPS22D_MainLoop();
 }
 
 /**

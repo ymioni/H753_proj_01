@@ -118,6 +118,8 @@ void BSP_LED_MainStop(void)
   */
 void BSP_LED_MainLoop(void)
 {
+	static	bool	directionUp = true;
+
 	if( Main_Active == false)	return;
 
 	if( HAL_GetTick() < Main_Time_Target)	return;
@@ -133,13 +135,25 @@ void BSP_LED_MainLoop(void)
 		return;
 	}
 
-	if( Main_Idle_Idx >= eBSP_LED_MAX_VALUE) Main_Idle_Idx = 0;
-	HAL_GPIO_TogglePin(LED_Data[Main_Idle_Idx].Port, LED_Data[Main_Idle_Idx].Pin);
+	for( uint8_t led = 0; led < eBSP_LED_MAX_VALUE; led ++)
+		HAL_GPIO_WritePin(LED_Data[led].Port, LED_Data[led].Pin, (led == Main_Idle_Idx));
 
-	Main_Idle_Idx ++;
-
-	if( Main_Idle_Idx >= eBSP_LED_MAX_VALUE) Main_Idle_Idx = 0;
-	HAL_GPIO_TogglePin(LED_Data[Main_Idle_Idx].Port, LED_Data[Main_Idle_Idx].Pin);
+	if( directionUp == true)
+	{
+		if( Main_Idle_Idx < (eBSP_LED_MAX_VALUE - 1))
+		{
+			if( (++ Main_Idle_Idx) >= (eBSP_LED_MAX_VALUE - 1))
+				directionUp = false;
+		}
+	}
+	else
+	{
+		if( Main_Idle_Idx > 0)
+		{
+			if( (-- Main_Idle_Idx) == 0)
+				directionUp = true;
+		}
+	}
 
 	Main_Time_Target = HAL_GetTick() + Main_Time;
 }

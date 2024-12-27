@@ -28,7 +28,6 @@
 #include ".\PER\Peripherals.h"
 #include ".\Util\Util.h"
 #include ".\RespCodes.h"
-#include ".\SENS\SHT40.h"
 
 /* USER CODE END Includes */
 
@@ -155,10 +154,9 @@ int main(void)
   BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_OFF, 0);
   BSP_LED_Start(eBSP_LED_2_YELLOW, eBSP_LED_PATTERN_OFF, 0);
   BSP_LED_Start(eBSP_LED_3_GREEN, eBSP_LED_PATTERN_ON, 0);
-  HAL_Delay(1000);
+  HAL_Delay(2000);
   BSP_LED_Start(eBSP_LED_3_GREEN, eBSP_LED_PATTERN_OFF, 0);
-  BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_ON, 0);
-  HAL_Delay(100);
+//  BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_ON, 0);
   BSP_LED_MainStart();
 
   // USART
@@ -185,6 +183,13 @@ int main(void)
 	  {
 	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_STTS22,
 								.Function = eBSP_PER_FUNC_TEMP,
+								.Precision = eBSP_PER_PRCSN_VOID};
+	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
+	  }
+
+	  {
+	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LPS22D,
+								.Function = eBSP_PER_FUNC_GET_SN,
 								.Precision = eBSP_PER_PRCSN_VOID};
 	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
 	  }
