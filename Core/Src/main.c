@@ -197,6 +197,12 @@ int main(void)
 								.Function = eBSP_PER_FUNC_GET_SN};
 	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
 	  }
+
+	  {
+	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LSM6DSV,
+								.Function = eBSP_PER_FUNC_GET_SN};
+	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
+	  }
   }
 
   /* USER CODE END 2 */
