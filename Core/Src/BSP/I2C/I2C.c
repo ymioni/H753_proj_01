@@ -29,6 +29,7 @@
 #include ".\SENS\SHT40.h"
 #include ".\SENS\STTS22.h"
 #include ".\SENS\LPS22D.h"
+#include ".\SENS\LIS2MDL.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,6 +67,7 @@ static	tBSP_I2C_TxRx		Main_BSP_I2C_TxRx	= {0};
 static void			BSP_I2C_Cb_GetData_SHT40( tBSP_PER_DataResp *Data);
 static void			BSP_I2C_Cb_GetData_STTS22( tBSP_PER_DataResp *Data);
 static void			BSP_I2C_Cb_GetData_LPS22D( tBSP_PER_DataResp *Data);
+static void			BSP_I2C_Cb_GetData_LIS2MDL( tBSP_PER_DataResp *Data);
 
 /* USER CODE END PFP */
 
@@ -82,6 +84,7 @@ bool			BSP_I2C_Init( I2C_HandleTypeDef *handle)
 	BSP_SHT40_Init( handle, BSP_I2C_Cb_GetData_SHT40);
 	BSP_STTS22_Init( handle, BSP_I2C_Cb_GetData_STTS22);
 	BSP_LPS22D_Init( handle, BSP_I2C_Cb_GetData_LPS22D);
+	BSP_LIS2MDL_Init( handle, BSP_I2C_Cb_GetData_LIS2MDL);
 	return true;
 }
 
@@ -99,10 +102,12 @@ void 			BSP_I2C_MainLoop( void)
 	case	eBSP_PER_TARGET_SHT40A:		BSP_SHT40_MainLoop();	break;
 	case	eBSP_PER_TARGET_STTS22:		BSP_STTS22_MainLoop();	break;
 	case	eBSP_PER_TARGET_LPS22D:		BSP_LPS22D_MainLoop();	break;
+	case	eBSP_PER_TARGET_LIS2MDL:	BSP_LIS2MDL_MainLoop();	break;
 	default:
 		BSP_SHT40_MainLoop();
 		BSP_STTS22_MainLoop();
 		BSP_LPS22D_MainLoop();
+		BSP_LIS2MDL_MainLoop();
 		break;
 	}
 
@@ -137,6 +142,10 @@ void 			BSP_I2C_MainLoop( void)
 		Main_cmd.Target 	= eBSP_PER_TARGET_LPS22D;
 		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
 		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+
+		Main_cmd.Target 	= eBSP_PER_TARGET_LIS2MDL;
+		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
+		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
 	}
 }
 
@@ -168,6 +177,10 @@ bool			BSP_I2C_Cmd(I2C_HandleTypeDef *handle, tBSP_PER_DataCmd *cmd, tBSP_PER_Da
 
 	case	eBSP_PER_TARGET_LPS22D:
 		BSP_LPS22D_Cmd( cmd);
+		break;
+
+	case	eBSP_PER_TARGET_LIS2MDL:
+		BSP_LIS2MDL_Cmd( cmd);
 		break;
 
 	default:
@@ -306,6 +319,17 @@ static void			BSP_I2C_Cb_GetData_STTS22( tBSP_PER_DataResp *Data)
 static void			BSP_I2C_Cb_GetData_LPS22D( tBSP_PER_DataResp *Data)
 {
 	printf("[LPS22D] Addr:%.2X, SN:%lX\n",
+			Data->Address,
+			Data->SerialNumber);
+}
+
+/**
+  * @brief
+  * @retval
+  */
+static void			BSP_I2C_Cb_GetData_LIS2MDL( tBSP_PER_DataResp *Data)
+{
+	printf("[LIS2MDL] Addr:%.2X, SN:%lX\n",
 			Data->Address,
 			Data->SerialNumber);
 }
