@@ -80,6 +80,9 @@ static	I2C_HandleTypeDef*		Main_Handle			= NULL;
 static	uint16_t				Main_Timer			= 0;
 static	uint16_t				Main_Timeout		= 1000;
 static	uint16_t				Main_Delay 			= 50;
+static	tCmd_SHT40				Main_Cmd			= 0;
+static  bool					Main_Set			= false;
+static  bool					Main_Wait4Rx		= false;
 
 static	uint8_t 				Main_TxBuf[2]		= {0};
 static	uint8_t 				Main_TxLen			= 0;
@@ -101,7 +104,10 @@ static	tCmdQueue		BSP_SHT40_Dequeue( void);
 static	bool			BSP_SHT40_Transaction( tCmdQueue Rec);
 static	bool			BSP_SHT40_Transaction_TxRx(void);
 static	bool			BSP_SHT40_Transaction_Tx(void);
+static	bool			BSP_SHT40_Transaction_Rx(void);
 static	bool			BSP_SHT40_Transaction_SetData(tCmd_SHT40 Cmd);
+static	void			BSP_SHT40_Cb_TxDone(bool result);
+static	void			BSP_SHT40_Cb_RxDone(bool result);
 
 /* USER CODE END PFP */
 
@@ -152,26 +158,30 @@ void 			BSP_SHT40_MainLoop( void)
 		if( Rec.Cmd != 0)
 		{
 			BSP_SHT40_Transaction(Rec);
-
-			switch( Rec.Cmd)
-			{
-			case	CMD_SHT40_GET_TEMP_RH_PRECISION_HI:
-			case	CMD_SHT40_GET_TEMP_RH_PRECISION_MED:
-			case	CMD_SHT40_GET_TEMP_RH_PRECISION_LO:
-				Main_Timer	=	5000;
-				Main_State ++;
-				break;
-
-			default:
-				break;
-			}
+			Main_State ++;
 		}
-		return;
+		else
+		{
+			Main_Timer = 1000;
+			BSP_SHT40_Cmd( &Main_Per_DataCmd);
+		}
+		break;
 
 	case	1:
-		Main_Per_DataCmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
-		BSP_SHT40_Cmd( &Main_Per_DataCmd);
-		Main_State = 0;
+		break;
+
+	case	2:
+		Main_Timer	=	Main_Delay;
+		Main_State ++;
+		break;
+
+	case	3:
+		if( Main_Wait4Rx == true)
+		{
+			BSP_SHT40_Transaction_Rx();
+			Main_Timer	=	Main_Delay;
+		}
+		Main_State 	=	0;
 		break;
 
 	default:
@@ -345,18 +355,11 @@ static	bool	BSP_SHT40_Transaction(tCmdQueue Rec)
 
 	if( result == true)
 	{
-		if( Rec.Set == BSP_GET)
+		Main_Cmd = Rec.Cmd;
+		Main_Set = Rec.Set;
+		if( Main_Set == BSP_GET)
 		{
 			result = BSP_SHT40_Transaction_TxRx();
-
-			if( result == true)
-			{
-				if( BSP_SHT40_Transaction_SetData(Rec.Cmd) == true)
-				{
-					if(Main_Cb_GetData_SHT40 != NULL)
-						Main_Cb_GetData_SHT40(&Main_Per_DataResp);
-				}
-			}
 		}
 		else
 		{
@@ -373,16 +376,8 @@ static	bool	BSP_SHT40_Transaction(tCmdQueue Rec)
   */
 static	bool			BSP_SHT40_Transaction_TxRx(void)
 {
-	HAL_StatusTypeDef	HAL_Result;
-
-	if( BSP_SHT40_Transaction_Tx() == false)
-		return false;
-	else
-	{
-		HAL_Result = HAL_I2C_Master_Receive(Main_Handle, I2C_DEVICE_ADDRESS_SHT40, Main_RxBuf, Main_RxLen, Main_Timeout);
-		if( BSP_RespCodes_Assert_HAL((HAL_Result != HAL_OK), eBSP_RESP_CODE_HAL_ERR, HAL_Result, Main_Handle))	return false;
-		return true;
-	}
+	Main_Wait4Rx = true;
+	return( BSP_SHT40_Transaction_Tx());
 }
 
 /**
@@ -391,17 +386,71 @@ static	bool			BSP_SHT40_Transaction_TxRx(void)
   */
 static	bool			BSP_SHT40_Transaction_Tx(void)
 {
-	HAL_StatusTypeDef	HAL_Result;
+	tBSP_I2C_TxRx	BSP_I2C_TxRx = {	.handle		= Main_Handle,
+										.Address	= I2C_DEVICE_ADDRESS_SHT40,
+										.Device		= eBSP_PER_TARGET_SHT40A,
+										.pData		= Main_TxBuf,
+										.Size		= Main_TxLen,
+										.Timeout	= (Main_Set == BSP_SET) ? 0 : Main_Timeout,
+										.Cb_TxDone	= BSP_SHT40_Cb_TxDone};
+	printf("--> BSP_I2C_Transmit_IT( %.2X)\n", BSP_I2C_TxRx.pData[0]);
+	return(BSP_I2C_Transmit_IT(&BSP_I2C_TxRx));
+}
 
-	if( BSP_RespCodes_Assert_BSP((Main_TxLen == 0), BSP_ERROR_PARAM_ZERO))				return false;
-	if( BSP_RespCodes_Assert_BSP((Main_TxBuf[0] == 0), BSP_ERROR_PARAM_ZERO))			return false;
+/**
+  * @brief
+  * @retval
+  */
+static	bool			BSP_SHT40_Transaction_Rx(void)
+{
+	bool	result;
 
-	HAL_Result = HAL_I2C_Master_Transmit(Main_Handle, I2C_DEVICE_ADDRESS_SHT40, Main_TxBuf, Main_TxLen, Main_Timeout);
-	HAL_Delay(Main_Delay);
+	tBSP_I2C_TxRx	BSP_I2C_TxRx = {	.handle		= Main_Handle,
+										.Address	= I2C_DEVICE_ADDRESS_SHT40,
+										.Device		= eBSP_PER_TARGET_SHT40A,
+										.pData		= Main_RxBuf,
+										.Size		= Main_RxLen,
+										.Timeout	= Main_Timeout,
+										.Cb_RxDone	= BSP_SHT40_Cb_RxDone};
 
-	if( BSP_RespCodes_Assert_HAL((HAL_Result != HAL_OK), eBSP_RESP_CODE_HAL_ERR, HAL_Result, Main_Handle))	return false;
+	printf("Call BSP_I2C_Receive_IT\n");
+	result =	BSP_I2C_Receive_IT(&BSP_I2C_TxRx);
+	if( result == false)
+		Main_Wait4Rx = false;
 
-	return true;
+	return( result);
+}
+
+/**
+  * @brief
+  * @retval
+  */
+static	void			BSP_SHT40_Cb_TxDone(bool result)
+{
+	if( result == false)
+	{
+		Main_Wait4Rx = false;
+		return; // Timeout
+	}
+
+	Main_State = 2;
+}
+
+/**
+  * @brief
+  * @retval
+  */
+static	void			BSP_SHT40_Cb_RxDone(bool result)
+{
+	Main_Wait4Rx = false;
+	if( result == false)
+		return; // Timeout
+
+	if( BSP_SHT40_Transaction_SetData(Main_Cmd) == true)
+	{
+		if(Main_Cb_GetData_SHT40 != NULL)
+			Main_Cb_GetData_SHT40(&Main_Per_DataResp);
+	}
 }
 
 /**
