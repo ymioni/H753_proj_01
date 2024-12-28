@@ -162,11 +162,6 @@ void 			BSP_SHT40_MainLoop( void)
 			BSP_SHT40_Transaction(Rec);
 			Main_State ++;
 		}
-//		else
-//		{
-//			Main_Timer = 1000;
-//			BSP_SHT40_Cmd( &Main_Per_DataCmd);
-//		}
 		break;
 
 	case	1:

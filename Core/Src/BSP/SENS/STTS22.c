@@ -177,7 +177,6 @@ void 			BSP_STTS22_MainLoop( void)
 			BSP_STTS22_Transaction(Rec);
 			Main_State ++;
 		}
-//		}
 		break;
 
 	case	1:

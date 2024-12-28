@@ -91,6 +91,9 @@ bool			BSP_I2C_Init( I2C_HandleTypeDef *handle)
   */
 void 			BSP_I2C_MainLoop( void)
 {
+	#define	Time		100
+	static	uint32_t	Target	= 0;
+
 	switch(Main_ActiveDevice)
 	{
 	case	eBSP_PER_TARGET_SHT40A:		BSP_SHT40_MainLoop();	break;
@@ -99,7 +102,7 @@ void 			BSP_I2C_MainLoop( void)
 	default:
 		BSP_SHT40_MainLoop();
 		BSP_STTS22_MainLoop();
-//		BSP_LPS22D_MainLoop();
+		BSP_LPS22D_MainLoop();
 		break;
 	}
 
@@ -111,27 +114,29 @@ void 			BSP_I2C_MainLoop( void)
 		Main_BSP_I2C_TxRx.Cb_RxDone(false);
 	}
 
+	//	DEBUG
+	if( Main_ActiveDevice > eBSP_PER_TARGET_VOID)
 	{
-		static	uint16_t	Time	= 2000;
-		static	uint32_t	Target	= 0;
+		Target = HAL_GetTick() + Time;
+		return;
+	}
 
-		if( Main_ActiveDevice == eBSP_PER_TARGET_VOID)
-		{
-			if( HAL_GetTick() > Target)
-			{
-				Main_cmd.Target 	= eBSP_PER_TARGET_SHT40A;
-				Main_cmd.Function	= eBSP_PER_FUNC_TEMP_RH;
-				Main_cmd.Precision	= eBSP_PER_PRCSN_HIGH;
-				BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+	if( HAL_GetTick() > Target)
+	{
+		Target = HAL_GetTick() + Time;
 
-				Main_cmd.Target 	= eBSP_PER_TARGET_STTS22;
-				Main_cmd.Function	= eBSP_PER_FUNC_TEMP;
-				Main_cmd.Precision	= eBSP_PER_PRCSN_VOID;
-				BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+		Main_cmd.Target 	= eBSP_PER_TARGET_SHT40A;
+		Main_cmd.Function	= eBSP_PER_FUNC_TEMP_RH;
+		Main_cmd.Precision	= eBSP_PER_PRCSN_HIGH;
+		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
 
-				Target = HAL_GetTick() + Time;
-			}
-		}
+		Main_cmd.Target 	= eBSP_PER_TARGET_STTS22;
+		Main_cmd.Function	= eBSP_PER_FUNC_TEMP;
+		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+
+		Main_cmd.Target 	= eBSP_PER_TARGET_LPS22D;
+		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
+		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
 	}
 }
 
@@ -159,6 +164,10 @@ bool			BSP_I2C_Cmd(I2C_HandleTypeDef *handle, tBSP_PER_DataCmd *cmd, tBSP_PER_Da
 
 	case	eBSP_PER_TARGET_STTS22:
 		BSP_STTS22_Cmd( cmd);
+		break;
+
+	case	eBSP_PER_TARGET_LPS22D:
+		BSP_LPS22D_Cmd( cmd);
 		break;
 
 	default:
@@ -268,7 +277,7 @@ void			HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *handle)
   */
 static void			BSP_I2C_Cb_GetData_SHT40( tBSP_PER_DataResp *Data)
 {
-	printf("[SHT40A] CbFunc OK!!! Addr:%.2X, SN:%lX, Temp:%.2f, H:%d\n",
+	printf("[SHT40A] Addr:%.2X, SN:%lX, Temp:%.2f, H:%d\n",
 			Data->Address,
 			Data->SerialNumber,
 			Data->Temperature,
@@ -281,7 +290,7 @@ static void			BSP_I2C_Cb_GetData_SHT40( tBSP_PER_DataResp *Data)
   */
 static void			BSP_I2C_Cb_GetData_STTS22( tBSP_PER_DataResp *Data)
 {
-	printf("[STTS22] CbFunc OK!!! Addr:%.2X, SN:%lX, CTRL:%.2X, STAT:%.2X, Temp:%.2f, H:%d\n",
+	printf("[STTS22] Addr:%.2X, SN:%lX, CTRL:%.2X, STAT:%.2X, Temp:%.2f, H:%d\n",
 			Data->Address,
 			Data->SerialNumber,
 			Data->Control,
@@ -296,7 +305,7 @@ static void			BSP_I2C_Cb_GetData_STTS22( tBSP_PER_DataResp *Data)
   */
 static void			BSP_I2C_Cb_GetData_LPS22D( tBSP_PER_DataResp *Data)
 {
-	printf("[LPS22D] CbFunc OK!!! Addr:%.2X, SN:%lX\n",
+	printf("[LPS22D] Addr:%.2X, SN:%lX\n",
 			Data->Address,
 			Data->SerialNumber);
 }
