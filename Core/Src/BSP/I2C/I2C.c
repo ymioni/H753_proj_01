@@ -31,6 +31,7 @@
 #include ".\SENS\LPS22D.h"
 #include ".\SENS\LIS2MDL.h"
 #include ".\SENS\LSM6DSV.h"
+#include ".\SENS\LSM6DSO.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -70,6 +71,7 @@ static void			BSP_I2C_Cb_GetData_STTS22( tBSP_PER_DataResp *Data);
 static void			BSP_I2C_Cb_GetData_LPS22D( tBSP_PER_DataResp *Data);
 static void			BSP_I2C_Cb_GetData_LIS2MDL( tBSP_PER_DataResp *Data);
 static void			BSP_I2C_Cb_GetData_LSM6DSV( tBSP_PER_DataResp *Data);
+static void			BSP_I2C_Cb_GetData_LSM6DSO( tBSP_PER_DataResp *Data);
 
 /* USER CODE END PFP */
 
@@ -88,6 +90,7 @@ bool			BSP_I2C_Init( I2C_HandleTypeDef *handle)
 	BSP_LPS22D_Init( handle, BSP_I2C_Cb_GetData_LPS22D);
 	BSP_LIS2MDL_Init( handle, BSP_I2C_Cb_GetData_LIS2MDL);
 	BSP_LSM6DSV_Init( handle, BSP_I2C_Cb_GetData_LSM6DSV);
+	BSP_LSM6DSO_Init( handle, BSP_I2C_Cb_GetData_LSM6DSO);
 	return true;
 }
 
@@ -107,12 +110,14 @@ void 			BSP_I2C_MainLoop( void)
 	case	eBSP_PER_TARGET_LPS22D:		BSP_LPS22D_MainLoop();	break;
 	case	eBSP_PER_TARGET_LIS2MDL:	BSP_LIS2MDL_MainLoop();	break;
 	case	eBSP_PER_TARGET_LSM6DSV:	BSP_LSM6DSV_MainLoop();	break;
+	case	eBSP_PER_TARGET_LSM6DSO:	BSP_LSM6DSO_MainLoop();	break;
 	default:
 		BSP_SHT40_MainLoop();
 		BSP_STTS22_MainLoop();
 		BSP_LPS22D_MainLoop();
 		BSP_LIS2MDL_MainLoop();
 		BSP_LSM6DSV_MainLoop();
+		BSP_LSM6DSO_MainLoop();
 		break;
 	}
 
@@ -155,6 +160,10 @@ void 			BSP_I2C_MainLoop( void)
 		Main_cmd.Target 	= eBSP_PER_TARGET_LSM6DSV;
 		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
 		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+
+		Main_cmd.Target 	= eBSP_PER_TARGET_LSM6DSO;
+		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
+		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
 	}
 }
 
@@ -194,6 +203,10 @@ bool			BSP_I2C_Cmd(I2C_HandleTypeDef *handle, tBSP_PER_DataCmd *cmd, tBSP_PER_Da
 
 	case	eBSP_PER_TARGET_LSM6DSV:
 		BSP_LSM6DSV_Cmd( cmd);
+		break;
+
+	case	eBSP_PER_TARGET_LSM6DSO:
+		BSP_LSM6DSO_Cmd( cmd);
 		break;
 
 	default:
@@ -354,6 +367,17 @@ static void			BSP_I2C_Cb_GetData_LIS2MDL( tBSP_PER_DataResp *Data)
 static void			BSP_I2C_Cb_GetData_LSM6DSV( tBSP_PER_DataResp *Data)
 {
 	printf("[LSM6DSV] Addr:%.2X, SN:%lX\n",
+			Data->Address,
+			Data->SerialNumber);
+}
+
+/**
+  * @brief
+  * @retval
+  */
+static void			BSP_I2C_Cb_GetData_LSM6DSO( tBSP_PER_DataResp *Data)
+{
+	printf("[LSM6DSO] Addr:%.2X, SN:%lX\n",
 			Data->Address,
 			Data->SerialNumber);
 }
