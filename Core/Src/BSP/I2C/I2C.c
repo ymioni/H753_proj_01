@@ -109,6 +109,20 @@ void 			BSP_I2C_MainLoop( void)
 		Main_TO_Target	= 0;
 		Main_BSP_I2C_TxRx.Cb_RxDone(false);
 	}
+
+//	{
+//		static	uint16_t	Time	= 5000;
+//		static	uint32_t	Target	= 0;
+//
+//		if( Main_ActiveDevice == eBSP_PER_TARGET_VOID)
+//		{
+//			if( HAL_GetTick() > Target)
+//			{
+//				BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+//				Target = HAL_GetTick() + Time;
+//			}
+//		}
+//	}
 }
 
 /**

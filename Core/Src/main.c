@@ -164,7 +164,7 @@ int main(void)
 //  Usart_RxBuf[64];
   Usart_RxBufIdx = 0;
   Usart_RxBufIgnore = false;
-  char	String[] = "START\n\n";
+  char	String[] = "\n\nSTART\n\n";
   BSP_USART_Receive(eBSP_USART_PORT_3, Main_USART_RxCplt);
   BSP_USART_Send(eBSP_USART_PORT_3, Main_USART_TxCplt, String, strlen(String));
 

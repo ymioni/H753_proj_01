@@ -67,8 +67,6 @@ bool			BSP_I2C_Cmd(I2C_HandleTypeDef *handle, tBSP_PER_DataCmd *cmd, tBSP_PER_Da
 
 bool			BSP_I2C_Transmit_IT(tBSP_I2C_TxRx*	BSP_I2C_TxRx);
 bool			BSP_I2C_Receive_IT(tBSP_I2C_TxRx*	BSP_I2C_TxRx);
-void			HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *handle);
-void			HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *handle);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
