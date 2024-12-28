@@ -154,6 +154,8 @@ void 			BSP_SHT40_MainLoop( void)
 	switch(Main_State)
 	{
 	case	0:
+		if( BSP_I2C_IsBusy())	break;
+
 		tCmdQueue Rec = BSP_SHT40_Dequeue();
 		if( Rec.Cmd != 0)
 		{
@@ -393,7 +395,7 @@ static	bool			BSP_SHT40_Transaction_Tx(void)
 										.Size		= Main_TxLen,
 										.Timeout	= (Main_Set == BSP_SET) ? 0 : Main_Timeout,
 										.Cb_TxDone	= BSP_SHT40_Cb_TxDone};
-	printf("--> BSP_I2C_Transmit_IT( %.2X)\n", BSP_I2C_TxRx.pData[0]);
+	while(BSP_I2C_IsBusy());
 	return(BSP_I2C_Transmit_IT(&BSP_I2C_TxRx));
 }
 
@@ -412,8 +414,6 @@ static	bool			BSP_SHT40_Transaction_Rx(void)
 										.Size		= Main_RxLen,
 										.Timeout	= Main_Timeout,
 										.Cb_RxDone	= BSP_SHT40_Cb_RxDone};
-
-	printf("Call BSP_I2C_Receive_IT\n");
 	result =	BSP_I2C_Receive_IT(&BSP_I2C_TxRx);
 	if( result == false)
 		Main_Wait4Rx = false;

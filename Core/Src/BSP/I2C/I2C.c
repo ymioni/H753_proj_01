@@ -98,31 +98,41 @@ void 			BSP_I2C_MainLoop( void)
 	case	eBSP_PER_TARGET_LPS22D:		BSP_LPS22D_MainLoop();	break;
 	default:
 		BSP_SHT40_MainLoop();
-//		BSP_STTS22_MainLoop();
+		BSP_STTS22_MainLoop();
 //		BSP_LPS22D_MainLoop();
 		break;
 	}
 
 	if( (Main_TO_Value > 0) && (HAL_GetTick() >= Main_TO_Target)) // TIMEOUT
 	{
-		Main_TO_Value	= 0;
-		Main_TO_Target	= 0;
+		Main_ActiveDevice	= 0;
+		Main_TO_Value		= 0;
+		Main_TO_Target		= 0;
 		Main_BSP_I2C_TxRx.Cb_RxDone(false);
 	}
 
-//	{
-//		static	uint16_t	Time	= 5000;
-//		static	uint32_t	Target	= 0;
-//
-//		if( Main_ActiveDevice == eBSP_PER_TARGET_VOID)
-//		{
-//			if( HAL_GetTick() > Target)
-//			{
-//				BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
-//				Target = HAL_GetTick() + Time;
-//			}
-//		}
-//	}
+	{
+		static	uint16_t	Time	= 2000;
+		static	uint32_t	Target	= 0;
+
+		if( Main_ActiveDevice == eBSP_PER_TARGET_VOID)
+		{
+			if( HAL_GetTick() > Target)
+			{
+				Main_cmd.Target 	= eBSP_PER_TARGET_SHT40A;
+				Main_cmd.Function	= eBSP_PER_FUNC_TEMP_RH;
+				Main_cmd.Precision	= eBSP_PER_PRCSN_HIGH;
+				BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+
+				Main_cmd.Target 	= eBSP_PER_TARGET_STTS22;
+				Main_cmd.Function	= eBSP_PER_FUNC_TEMP;
+				Main_cmd.Precision	= eBSP_PER_PRCSN_VOID;
+				BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+
+				Target = HAL_GetTick() + Time;
+			}
+		}
+	}
 }
 
 /**
@@ -156,6 +166,16 @@ bool			BSP_I2C_Cmd(I2C_HandleTypeDef *handle, tBSP_PER_DataCmd *cmd, tBSP_PER_Da
 	}
 
     return true;
+}
+
+/* USER CODE END 0 */
+/**
+  * @brief
+  * @retval
+  */
+bool			BSP_I2C_IsBusy( void)
+{
+	return(Main_ActiveDevice != eBSP_PER_TARGET_VOID);
 }
 
 /**

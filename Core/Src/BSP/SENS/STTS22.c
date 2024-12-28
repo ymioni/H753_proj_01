@@ -86,6 +86,9 @@ static	I2C_HandleTypeDef*		Main_Handle			= NULL;
 static	uint16_t				Main_Timer			= 0;
 static	uint16_t				Main_Timeout		= 1000;
 static	uint16_t				Main_Delay 			= 50;
+static	tCmd_STTS22				Main_Cmd			= 0;
+static  bool					Main_Set			= false;
+static  bool					Main_Wait4Rx		= false;
 
 static	uint8_t 				Main_TxBuf[2]		= {0};
 static	uint8_t 				Main_TxLen			= 0;
@@ -110,7 +113,10 @@ static	tCmdQueue		BSP_STTS22_Dequeue( void);
 static	bool			BSP_STTS22_Transaction( tCmdQueue Rec);
 static	bool			BSP_STTS22_Transaction_TxRx(void);
 static	bool			BSP_STTS22_Transaction_Tx(void);
+static	bool			BSP_STTS22_Transaction_Rx(void);
 static	bool			BSP_STTS22_Transaction_SetData(tCmd_STTS22 Cmd);
+static	void			BSP_STTS22_Cb_TxDone(bool result);
+static	void			BSP_STTS22_Cb_RxDone(bool result);
 
 /* USER CODE END PFP */
 
@@ -163,23 +169,32 @@ void 			BSP_STTS22_MainLoop( void)
 	switch(Main_State)
 	{
 	case	0:
+		if( BSP_I2C_IsBusy())	break;
+
 		tCmdQueue Rec = BSP_STTS22_Dequeue();
 		if( Rec.Cmd != 0)
 		{
 			BSP_STTS22_Transaction(Rec);
-
-			if( Rec.Cmd == CMD_STTS22_TEMP_H)
-			{
-				Main_Timer	=	5000;
-				Main_State ++;
-			}
+			Main_State ++;
 		}
-		return;
+//		}
+		break;
 
 	case	1:
-		Main_Per_DataCmd.Function	=	eBSP_PER_FUNC_TEMP;
-		BSP_STTS22_Cmd( &Main_Per_DataCmd);
-		Main_State = 0;
+		break;
+
+	case	2:
+		Main_Timer	=	Main_Delay;
+		Main_State ++;
+		break;
+
+	case	3:
+		if( Main_Wait4Rx == true)
+		{
+			BSP_STTS22_Transaction_Rx();
+			Main_Timer	=	Main_Delay;
+		}
+		Main_State 	=	0;
 		break;
 
 	default:
@@ -382,18 +397,11 @@ static	bool	BSP_STTS22_Transaction(tCmdQueue Rec)
 
 	if( result == true)
 	{
-		if( Rec.Set == BSP_GET)
+		Main_Cmd = Rec.Cmd;
+		Main_Set = Rec.Set;
+		if( Main_Set == BSP_GET)
 		{
 			result = BSP_STTS22_Transaction_TxRx();
-
-			if( result == true)
-			{
-				if( BSP_STTS22_Transaction_SetData(Rec.Cmd) == true)
-				{
-					if(Main_Cb_GetData_STTS22 != NULL)
-						Main_Cb_GetData_STTS22(&Main_Per_DataResp);
-				}
-			}
 		}
 		else
 		{
@@ -410,16 +418,8 @@ static	bool	BSP_STTS22_Transaction(tCmdQueue Rec)
   */
 static	bool			BSP_STTS22_Transaction_TxRx(void)
 {
-	HAL_StatusTypeDef	HAL_Result;
-
-	if( BSP_STTS22_Transaction_Tx() == false)
-		return false;
-	else
-	{
-		HAL_Result = HAL_I2C_Master_Receive(Main_Handle, I2C_DEVICE_ADDRESS_STTS22, Main_RxBuf, Main_RxLen, Main_Timeout);
-		if( BSP_RespCodes_Assert_HAL((HAL_Result != HAL_OK), eBSP_RESP_CODE_HAL_ERR, HAL_Result, Main_Handle))	return false;
-		return true;
-	}
+	Main_Wait4Rx = true;
+	return( BSP_STTS22_Transaction_Tx());
 }
 
 /**
@@ -428,17 +428,69 @@ static	bool			BSP_STTS22_Transaction_TxRx(void)
   */
 static	bool			BSP_STTS22_Transaction_Tx(void)
 {
-	HAL_StatusTypeDef	HAL_Result;
+	tBSP_I2C_TxRx	BSP_I2C_TxRx = {	.handle		= Main_Handle,
+										.Address	= I2C_DEVICE_ADDRESS_STTS22,
+										.Device		= eBSP_PER_TARGET_STTS22,
+										.pData		= Main_TxBuf,
+										.Size		= Main_TxLen,
+										.Timeout	= (Main_Set == BSP_SET) ? 0 : Main_Timeout,
+										.Cb_TxDone	= BSP_STTS22_Cb_TxDone};
+	while(BSP_I2C_IsBusy());
+	return(BSP_I2C_Transmit_IT(&BSP_I2C_TxRx));
+}
 
-	if( BSP_RespCodes_Assert_BSP((Main_TxLen == 0), BSP_ERROR_PARAM_ZERO))				return false;
-	if( BSP_RespCodes_Assert_BSP((Main_TxBuf[0] == 0), BSP_ERROR_PARAM_ZERO))			return false;
+/**
+  * @brief
+  * @retval
+  */
+static	bool			BSP_STTS22_Transaction_Rx(void)
+{
+	bool	result;
 
-	HAL_Result = HAL_I2C_Master_Transmit(Main_Handle, I2C_DEVICE_ADDRESS_STTS22, Main_TxBuf, Main_TxLen, Main_Timeout);
-	HAL_Delay(Main_Delay);
+	tBSP_I2C_TxRx	BSP_I2C_TxRx = {	.handle		= Main_Handle,
+										.Address	= I2C_DEVICE_ADDRESS_STTS22,
+										.Device		= eBSP_PER_TARGET_STTS22,
+										.pData		= Main_RxBuf,
+										.Size		= Main_RxLen,
+										.Timeout	= Main_Timeout,
+										.Cb_RxDone	= BSP_STTS22_Cb_RxDone};
+	result =	BSP_I2C_Receive_IT(&BSP_I2C_TxRx);
+	if( result == false)
+		Main_Wait4Rx = false;
 
-	if( BSP_RespCodes_Assert_HAL((HAL_Result != HAL_OK), eBSP_RESP_CODE_HAL_ERR, HAL_Result, Main_Handle))	return false;
+	return( result);
+}
 
-	return true;
+/**
+  * @brief
+  * @retval
+  */
+static	void			BSP_STTS22_Cb_TxDone(bool result)
+{
+	if( result == false)
+	{
+		Main_Wait4Rx = false;
+		return; // Timeout
+	}
+
+	Main_State = 2;
+}
+
+/**
+  * @brief
+  * @retval
+  */
+static	void			BSP_STTS22_Cb_RxDone(bool result)
+{
+	Main_Wait4Rx = false;
+	if( result == false)
+		return; // Timeout
+
+	if( BSP_STTS22_Transaction_SetData(Main_Cmd) == true)
+	{
+		if(Main_Cb_GetData_STTS22 != NULL)
+			Main_Cb_GetData_STTS22(&Main_Per_DataResp);
+	}
 }
 
 /**

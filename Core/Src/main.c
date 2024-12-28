@@ -180,12 +180,12 @@ int main(void)
 	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
 	  }
 
-//	  {
-//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_STTS22,
-//								.Function = eBSP_PER_FUNC_TEMP,
-//								.Precision = eBSP_PER_PRCSN_VOID};
-//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-//	  }
+	  {
+	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_STTS22,
+								.Function = eBSP_PER_FUNC_TEMP,
+								.Precision = eBSP_PER_PRCSN_VOID};
+	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
+	  }
 
 //	  {
 //	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LPS22D,
