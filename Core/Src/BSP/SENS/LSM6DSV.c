@@ -69,7 +69,7 @@ static	I2C_HandleTypeDef*		Main_Handle			= NULL;
 static	uint16_t				Main_Timer			= 0;
 static	uint16_t				Main_Timeout		= 1000;
 static	uint16_t				Main_Delay 			= 50;
-static	tCmd_LSM6DSV				Main_Cmd			= 0;
+static	tCmd_LSM6DSV			Main_Cmd			= 0;
 static  bool					Main_Set			= false;
 static  bool					Main_Wait4Rx		= false;
 

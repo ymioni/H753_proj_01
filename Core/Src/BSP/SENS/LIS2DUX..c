@@ -1,7 +1,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : lis2mdl..c
+  * @file           : lis2dux..c
   * @brief          : Main program body
   ******************************************************************************
   * @attention
@@ -25,14 +25,14 @@
 #include "..\PER\Peripherals.h"
 #include "..\Util\Util.h"
 #include "..\RespCodes.h"
-#include "LIS2MDL.h"
+#include "LIS2DUX.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 typedef	struct
 {
-	tCmd_LIS2MDL		Cmd;
+	tCmd_LIS2DUX	Cmd;
 	bool			Set;
 }tCmdQueue;
 
@@ -55,9 +55,9 @@ typedef	struct
 struct __PACKED
 {
 	uint8_t		SN;
-}Data_LIS2MDL_SN;
+}Data_LIS2DUX_SN;
 
-static	tCb_GetData_LIS2MDL		Main_Cb_GetData_LIS2MDL;
+static	tCb_GetData_LIS2DUX		Main_Cb_GetData_LIS2DUX;
 static  tBSP_PER_DataCmd		Main_Per_DataCmd	= {0};
 static	tBSP_PER_DataResp		Main_Per_DataResp	= {0};
 
@@ -69,7 +69,7 @@ static	I2C_HandleTypeDef*		Main_Handle			= NULL;
 static	uint16_t				Main_Timer			= 0;
 static	uint16_t				Main_Timeout		= 1000;
 static	uint16_t				Main_Delay 			= 50;
-static	tCmd_LIS2MDL			Main_Cmd			= 0;
+static	tCmd_LIS2DUX			Main_Cmd			= 0;
 static  bool					Main_Set			= false;
 static  bool					Main_Wait4Rx		= false;
 
@@ -88,15 +88,15 @@ static	uint8_t					Main_Q_Idx_Cnt		= 0;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-static	bool			BSP_LIS2MDL_Enqueue( tCmd_LIS2MDL Cmd, bool Set);
-static	tCmdQueue		BSP_LIS2MDL_Dequeue( void);
-static	bool			BSP_LIS2MDL_Transaction( tCmdQueue Rec);
-static	bool			BSP_LIS2MDL_Transaction_TxRx(void);
-static	bool			BSP_LIS2MDL_Transaction_Tx(void);
-static	bool			BSP_LIS2MDL_Transaction_Rx(void);
-static	bool			BSP_LIS2MDL_Transaction_SetData(tCmd_LIS2MDL Cmd);
-static	void			BSP_LIS2MDL_Cb_TxDone(bool result);
-static	void			BSP_LIS2MDL_Cb_RxDone(bool result);
+static	bool			BSP_LIS2DUX_Enqueue( tCmd_LIS2DUX Cmd, bool Set);
+static	tCmdQueue		BSP_LIS2DUX_Dequeue( void);
+static	bool			BSP_LIS2DUX_Transaction( tCmdQueue Rec);
+static	bool			BSP_LIS2DUX_Transaction_TxRx(void);
+static	bool			BSP_LIS2DUX_Transaction_Tx(void);
+static	bool			BSP_LIS2DUX_Transaction_Rx(void);
+static	bool			BSP_LIS2DUX_Transaction_SetData(tCmd_LIS2DUX Cmd);
+static	void			BSP_LIS2DUX_Cb_TxDone(bool result);
+static	void			BSP_LIS2DUX_Cb_RxDone(bool result);
 
 /* USER CODE END PFP */
 
@@ -108,15 +108,15 @@ static	void			BSP_LIS2MDL_Cb_RxDone(bool result);
   * @brief
   * @retval
   */
-bool			BSP_LIS2MDL_Init( I2C_HandleTypeDef *handle, tCb_GetData_LIS2MDL	CbFunc)
+bool			BSP_LIS2DUX_Init( I2C_HandleTypeDef *handle, tCb_GetData_LIS2DUX	CbFunc)
 {
 	if( BSP_RespCodes_Assert_BSP((handle == NULL), BSP_ERROR_HANDLE_ERR))				return false;
 	if( BSP_RespCodes_Assert_BSP((CbFunc == NULL), BSP_ERROR_PARAM_NULL))				return false;
 
 	Main_Handle					= handle;
-	Main_Cb_GetData_LIS2MDL		= CbFunc;
+	Main_Cb_GetData_LIS2DUX		= CbFunc;
 
-	Main_Per_DataResp.Address	= (I2C_DEVICE_ADDRESS_LIS2MDL >> 1);
+	Main_Per_DataResp.Address	= (I2C_DEVICE_ADDRESS_LIS2DUX >> 1);
 
 	Main_Active = 	true;
 	Main_Target	=	0;
@@ -126,7 +126,7 @@ bool			BSP_LIS2MDL_Init( I2C_HandleTypeDef *handle, tCb_GetData_LIS2MDL	CbFunc)
 
 	// Optional
 	Main_Per_DataCmd.Function	=	eBSP_PER_FUNC_GET_SN;
-	BSP_LIS2MDL_Cmd( &Main_Per_DataCmd);
+	BSP_LIS2DUX_Cmd( &Main_Per_DataCmd);
 
 	return true;
 }
@@ -135,7 +135,7 @@ bool			BSP_LIS2MDL_Init( I2C_HandleTypeDef *handle, tCb_GetData_LIS2MDL	CbFunc)
   * @brief
   * @retval
   */
-void 			BSP_LIS2MDL_MainLoop( void)
+void 			BSP_LIS2DUX_MainLoop( void)
 {
 	if( Main_Active == false)			return;
 	if( HAL_GetTick() < Main_Target)	return;
@@ -145,10 +145,10 @@ void 			BSP_LIS2MDL_MainLoop( void)
 	case	0:
 		if( BSP_I2C_IsBusy())	break;
 
-		tCmdQueue Rec = BSP_LIS2MDL_Dequeue();
+		tCmdQueue Rec = BSP_LIS2DUX_Dequeue();
 		if( Rec.Cmd != 0)
 		{
-			BSP_LIS2MDL_Transaction(Rec);
+			BSP_LIS2DUX_Transaction(Rec);
 			Main_State ++;
 		}
 		break;
@@ -164,7 +164,7 @@ void 			BSP_LIS2MDL_MainLoop( void)
 	case	3:
 		if( Main_Wait4Rx == true)
 		{
-			BSP_LIS2MDL_Transaction_Rx();
+			BSP_LIS2DUX_Transaction_Rx();
 			Main_Timer	=	Main_Delay;
 		}
 		Main_State 	=	0;
@@ -183,7 +183,7 @@ void 			BSP_LIS2MDL_MainLoop( void)
   * @brief
   * @retval
   */
-bool			BSP_LIS2MDL_Cmd( tBSP_PER_DataCmd	*cmd)
+bool			BSP_LIS2DUX_Cmd( tBSP_PER_DataCmd	*cmd)
 {
 	bool	result = true;
 
@@ -196,7 +196,7 @@ bool			BSP_LIS2MDL_Cmd( tBSP_PER_DataCmd	*cmd)
 	switch(cmd->Function)
 	{
 	case	eBSP_PER_FUNC_GET_SN:
-		result = BSP_LIS2MDL_Enqueue(CMD_LIS2MDL_GET_SN, BSP_GET);
+		result = BSP_LIS2DUX_Enqueue(CMD_LIS2DUX_GET_SN, BSP_GET);
 		break;
 
 	default:
@@ -211,7 +211,7 @@ bool			BSP_LIS2MDL_Cmd( tBSP_PER_DataCmd	*cmd)
   * @brief
   * @retval
   */
-static	bool			BSP_LIS2MDL_Enqueue( tCmd_LIS2MDL Cmd, bool Set)
+static	bool			BSP_LIS2DUX_Enqueue( tCmd_LIS2DUX Cmd, bool Set)
 {
 	tCmdQueue Rec = {.Cmd = Cmd, .Set = Set};
 
@@ -230,7 +230,7 @@ static	bool			BSP_LIS2MDL_Enqueue( tCmd_LIS2MDL Cmd, bool Set)
   * @brief
   * @retval
   */
-static	tCmdQueue		BSP_LIS2MDL_Dequeue( void)
+static	tCmdQueue		BSP_LIS2DUX_Dequeue( void)
 {
 	tCmdQueue	Rec = {0};
 
@@ -249,18 +249,18 @@ static	tCmdQueue		BSP_LIS2MDL_Dequeue( void)
   * @brief
   * @retval
   */
-static	bool	BSP_LIS2MDL_Transaction(tCmdQueue Rec)
+static	bool	BSP_LIS2DUX_Transaction(tCmdQueue Rec)
 {
 	bool	result = true;
 	uint8_t	idx = 0;
 
 	switch(Rec.Cmd)
 	{
-	case	CMD_LIS2MDL_GET_SN:
+	case	CMD_LIS2DUX_GET_SN:
 		Main_TxBuf[idx ++]	=	Rec.Cmd;
 		Main_TxLen = idx;
-		Main_RxBuf	= (uint8_t *)&Data_LIS2MDL_SN;
-		Main_RxLen	= sizeof(Data_LIS2MDL_SN);
+		Main_RxBuf	= (uint8_t *)&Data_LIS2DUX_SN;
+		Main_RxLen	= sizeof(Data_LIS2DUX_SN);
 		break;
 
 	default:
@@ -274,11 +274,11 @@ static	bool	BSP_LIS2MDL_Transaction(tCmdQueue Rec)
 		Main_Set = Rec.Set;
 		if( Main_Set == BSP_GET)
 		{
-			result = BSP_LIS2MDL_Transaction_TxRx();
+			result = BSP_LIS2DUX_Transaction_TxRx();
 		}
 		else
 		{
-			result = BSP_LIS2MDL_Transaction_Tx();
+			result = BSP_LIS2DUX_Transaction_Tx();
 		}
 	}
 
@@ -289,25 +289,25 @@ static	bool	BSP_LIS2MDL_Transaction(tCmdQueue Rec)
   * @brief
   * @retval
   */
-static	bool			BSP_LIS2MDL_Transaction_TxRx(void)
+static	bool			BSP_LIS2DUX_Transaction_TxRx(void)
 {
 	Main_Wait4Rx = true;
-	return( BSP_LIS2MDL_Transaction_Tx());
+	return( BSP_LIS2DUX_Transaction_Tx());
 }
 
 /**
   * @brief
   * @retval
   */
-static	bool			BSP_LIS2MDL_Transaction_Tx(void)
+static	bool			BSP_LIS2DUX_Transaction_Tx(void)
 {
 	tBSP_I2C_TxRx	BSP_I2C_TxRx = {	.handle		= Main_Handle,
-										.Address	= I2C_DEVICE_ADDRESS_LIS2MDL,
-										.Device		= eBSP_PER_TARGET_LIS2MDL,
+										.Address	= I2C_DEVICE_ADDRESS_LIS2DUX,
+										.Device		= eBSP_PER_TARGET_LIS2DUX,
 										.pData		= Main_TxBuf,
 										.Size		= Main_TxLen,
 										.Timeout	= (Main_Set == BSP_SET) ? 0 : Main_Timeout,
-										.Cb_TxDone	= BSP_LIS2MDL_Cb_TxDone};
+										.Cb_TxDone	= BSP_LIS2DUX_Cb_TxDone};
 	while(BSP_I2C_IsBusy());
 	return(BSP_I2C_Transmit_IT(&BSP_I2C_TxRx));
 }
@@ -316,17 +316,17 @@ static	bool			BSP_LIS2MDL_Transaction_Tx(void)
   * @brief
   * @retval
   */
-static	bool			BSP_LIS2MDL_Transaction_Rx(void)
+static	bool			BSP_LIS2DUX_Transaction_Rx(void)
 {
 	bool	result;
 
 	tBSP_I2C_TxRx	BSP_I2C_TxRx = {	.handle		= Main_Handle,
-										.Address	= I2C_DEVICE_ADDRESS_LIS2MDL,
-										.Device		= eBSP_PER_TARGET_LIS2MDL,
+										.Address	= I2C_DEVICE_ADDRESS_LIS2DUX,
+										.Device		= eBSP_PER_TARGET_LIS2DUX,
 										.pData		= Main_RxBuf,
 										.Size		= Main_RxLen,
 										.Timeout	= Main_Timeout,
-										.Cb_RxDone	= BSP_LIS2MDL_Cb_RxDone};
+										.Cb_RxDone	= BSP_LIS2DUX_Cb_RxDone};
 	result =	BSP_I2C_Receive_IT(&BSP_I2C_TxRx);
 	if( result == false)
 		Main_Wait4Rx = false;
@@ -338,7 +338,7 @@ static	bool			BSP_LIS2MDL_Transaction_Rx(void)
   * @brief
   * @retval
   */
-static	void			BSP_LIS2MDL_Cb_TxDone(bool result)
+static	void			BSP_LIS2DUX_Cb_TxDone(bool result)
 {
 	if( result == false)
 	{
@@ -353,16 +353,16 @@ static	void			BSP_LIS2MDL_Cb_TxDone(bool result)
   * @brief
   * @retval
   */
-static	void			BSP_LIS2MDL_Cb_RxDone(bool result)
+static	void			BSP_LIS2DUX_Cb_RxDone(bool result)
 {
 	Main_Wait4Rx = false;
 	if( result == false)
 		return; // Timeout
 
-	if( BSP_LIS2MDL_Transaction_SetData(Main_Cmd) == true)
+	if( BSP_LIS2DUX_Transaction_SetData(Main_Cmd) == true)
 	{
-		if(Main_Cb_GetData_LIS2MDL != NULL)
-			Main_Cb_GetData_LIS2MDL(&Main_Per_DataResp);
+		if(Main_Cb_GetData_LIS2DUX != NULL)
+			Main_Cb_GetData_LIS2DUX(&Main_Per_DataResp);
 	}
 }
 
@@ -370,13 +370,13 @@ static	void			BSP_LIS2MDL_Cb_RxDone(bool result)
   * @brief
   * @retval
   */
-static	bool			BSP_LIS2MDL_Transaction_SetData(tCmd_LIS2MDL Cmd)
+static	bool			BSP_LIS2DUX_Transaction_SetData(tCmd_LIS2DUX Cmd)
 {
 	bool result = true;
 
 	switch( Cmd)
 	{
-	case	CMD_LIS2MDL_GET_SN:
+	case	CMD_LIS2DUX_GET_SN:
 		Main_Per_DataResp.SerialNumber = Main_RxBuf[0];
 		break;
 
