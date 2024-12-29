@@ -62,7 +62,7 @@ typedef	struct
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
 bool			BSP_I2C_Init( I2C_HandleTypeDef *handle);
-void 			BSP_I2C_MainLoop( void);
+void 			task_BSP_I2C_MainLoop( void);
 bool			BSP_I2C_Cmd(I2C_HandleTypeDef *handle, tBSP_PER_DataCmd *cmd, tBSP_PER_DataResp *resp);
 bool			BSP_I2C_IsBusy( void);
 

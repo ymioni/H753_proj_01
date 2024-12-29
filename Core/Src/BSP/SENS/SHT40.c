@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -41,7 +42,7 @@ typedef	struct
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define	IDLE_DELAY_TIME			1	//	msec
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -77,8 +78,8 @@ static	uint8_t					Main_State			= 0;
 static	uint32_t				Main_Target			= 0;
 
 static	I2C_HandleTypeDef*		Main_Handle			= NULL;
-static	uint16_t				Main_Timer			= 0;
-static	uint16_t				Main_Timeout		= 1000;
+static	uint16_t				Main_Timer			= IDLE_DELAY_TIME;
+static	uint16_t				Main_Timeout		= 3000;
 static	uint16_t				Main_Delay 			= 50;
 static	tCmd_SHT40				Main_Cmd			= 0;
 static  bool					Main_Set			= false;
@@ -143,51 +144,55 @@ bool			BSP_SHT40_Init( I2C_HandleTypeDef *handle, tCb_GetData_SHT40	CbFunc)
 }
 
 /**
-  * @brief
-  * @retval
-  */
-void 			BSP_SHT40_MainLoop( void)
+* @brief Function implementing the TaskSHT40 thread.
+* @param argument: Not used
+* @retval None
+*/
+void 			task_SHT40(void *argument)
 {
 	if( Main_Active == false)			return;
-	if( HAL_GetTick() < Main_Target)	return;
 
-	switch(Main_State)
+	for(;;)
 	{
-	case	0:
-		if( BSP_I2C_IsBusy())	break;
+	    osDelay(Main_Timer);
+	    Main_Timer = IDLE_DELAY_TIME;
 
-		tCmdQueue Rec = BSP_SHT40_Dequeue();
-		if( Rec.Cmd != 0)
+		switch(Main_State)
 		{
-			BSP_SHT40_Transaction(Rec);
-			Main_State ++;
-		}
-		break;
+		case	0:
+			if( BSP_I2C_IsBusy())	break;
 
-	case	1:
-		break;
+			tCmdQueue Rec = BSP_SHT40_Dequeue();
+			if( Rec.Cmd != 0)
+			{
+				BSP_SHT40_Transaction(Rec);
+				Main_State ++;
+			}
+			break;
 
-	case	2:
-		Main_Timer	=	Main_Delay;
-		Main_State ++;
-		break;
+		case	1:
+			break;
 
-	case	3:
-		if( Main_Wait4Rx == true)
-		{
-			BSP_SHT40_Transaction_Rx();
+		case	2:
 			Main_Timer	=	Main_Delay;
+			Main_State ++;
+			break;
+
+		case	3:
+			if( Main_Wait4Rx == true)
+			{
+				BSP_SHT40_Transaction_Rx();
+				Main_Timer	=	Main_Delay;
+			}
+			Main_State 	=	0;
+			break;
+
+		default:
+			Main_Timer	=	IDLE_DELAY_TIME;
+			Main_State	=	0;
+			break;
 		}
-		Main_State 	=	0;
-		break;
-
-	default:
-		Main_Timer	=	0;
-		Main_State	=	0;
-		break;
 	}
-
-	Main_Target = HAL_GetTick() + Main_Timer;
 }
 
 /**

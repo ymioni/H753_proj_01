@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -98,81 +99,89 @@ bool			BSP_I2C_Init( I2C_HandleTypeDef *handle)
 }
 
 /**
-  * @brief
-  * @retval
-  */
-void 			BSP_I2C_MainLoop( void)
+* @brief Function implementing the taskI2C thread.
+* @param argument: Not used
+* @retval None
+*/
+void task_I2C(void *argument)
+//void 			task_BSP_I2C_MainLoop( void)
 {
 	#define	Time		100
 	static	uint32_t	Target	= 0;
 
-	switch(Main_ActiveDevice)
+	for(;;)
 	{
-	case	eBSP_PER_TARGET_SHT40A:		BSP_SHT40_MainLoop();	break;
-//	case	eBSP_PER_TARGET_STTS22:		BSP_STTS22_MainLoop();	break;
-//	case	eBSP_PER_TARGET_LPS22D:		BSP_LPS22D_MainLoop();	break;
-//	case	eBSP_PER_TARGET_LIS2MDL:	BSP_LIS2MDL_MainLoop();	break;
-//	case	eBSP_PER_TARGET_LSM6DSV:	BSP_LSM6DSV_MainLoop();	break;
-//	case	eBSP_PER_TARGET_LSM6DSO:	BSP_LSM6DSO_MainLoop();	break;
-//	case	eBSP_PER_TARGET_LIS2DUX:	BSP_LIS2DUX_MainLoop();	break;
-	default:
-		BSP_SHT40_MainLoop();
-//		BSP_STTS22_MainLoop();
-//		BSP_LPS22D_MainLoop();
-//		BSP_LIS2MDL_MainLoop();
-//		BSP_LSM6DSV_MainLoop();
-//		BSP_LSM6DSO_MainLoop();
-//		BSP_LIS2DUX_MainLoop();
-		break;
-	}
+	    osDelay(1);
 
-	if( (Main_TO_Value > 0) && (HAL_GetTick() >= Main_TO_Target)) // TIMEOUT
-	{
-		Main_ActiveDevice	= 0;
-		Main_TO_Value		= 0;
-		Main_TO_Target		= 0;
-		Main_BSP_I2C_TxRx.Cb_RxDone(false);
-	}
+		switch(Main_ActiveDevice)
+		{
+//		case	eBSP_PER_TARGET_SHT40A:		BSP_SHT40_MainLoop();	break;
+	//	case	eBSP_PER_TARGET_STTS22:		BSP_STTS22_MainLoop();	break;
+	//	case	eBSP_PER_TARGET_LPS22D:		BSP_LPS22D_MainLoop();	break;
+	//	case	eBSP_PER_TARGET_LIS2MDL:	BSP_LIS2MDL_MainLoop();	break;
+	//	case	eBSP_PER_TARGET_LSM6DSV:	BSP_LSM6DSV_MainLoop();	break;
+	//	case	eBSP_PER_TARGET_LSM6DSO:	BSP_LSM6DSO_MainLoop();	break;
+	//	case	eBSP_PER_TARGET_LIS2DUX:	BSP_LIS2DUX_MainLoop();	break;
+		default:
+//			BSP_SHT40_MainLoop();
+	//		BSP_STTS22_MainLoop();
+	//		BSP_LPS22D_MainLoop();
+	//		BSP_LIS2MDL_MainLoop();
+	//		BSP_LSM6DSV_MainLoop();
+	//		BSP_LSM6DSO_MainLoop();
+	//		BSP_LIS2DUX_MainLoop();
+			break;
+		}
 
-	//	DEBUG
-	if( Main_ActiveDevice > eBSP_PER_TARGET_VOID)
-	{
-		Target = HAL_GetTick() + Time;
-		return;
-	}
+		uint32_t Now = (osKernelGetTickCount() * 1000) / osKernelGetTickFreq();
+		if( (Main_TO_Value > 0) && (Now >= Main_TO_Target)) // TIMEOUT
+		{
+			Main_ActiveDevice	= 0;
+			Main_TO_Value		= 0;
+			Main_TO_Target		= 0;
+			Main_BSP_I2C_TxRx.Cb_RxDone(false);
+		}
 
-	if( HAL_GetTick() > Target)
-	{
-		Target = HAL_GetTick() + Time;
+		//	DEBUG
+		if( Main_ActiveDevice > eBSP_PER_TARGET_VOID)
+		{
+			Target = (Now + Time);
+			continue;
+		}
 
-		Main_cmd.Target 	= eBSP_PER_TARGET_SHT40A;
-		Main_cmd.Function	= eBSP_PER_FUNC_TEMP_RH;
-		Main_cmd.Precision	= eBSP_PER_PRCSN_HIGH;
-		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+		if( Now > Target)
+		{
+			Target = (Now + Time);
 
-//		Main_cmd.Target 	= eBSP_PER_TARGET_STTS22;
-//		Main_cmd.Function	= eBSP_PER_FUNC_TEMP;
-//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
-//
-//		Main_cmd.Target 	= eBSP_PER_TARGET_LPS22D;
-//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
-//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
-//
-//		Main_cmd.Target 	= eBSP_PER_TARGET_LIS2MDL;
-//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
-//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
-//
-//		Main_cmd.Target 	= eBSP_PER_TARGET_LSM6DSV;
-//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
-//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
-//
-//		Main_cmd.Target 	= eBSP_PER_TARGET_LSM6DSO;
-//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
-//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
-//
-//		Main_cmd.Target 	= eBSP_PER_TARGET_LIS2DUX;
-//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
-//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+			Main_cmd.Target 	= eBSP_PER_TARGET_SHT40A;
+			Main_cmd.Function	= eBSP_PER_FUNC_TEMP_RH;
+			Main_cmd.Precision	= eBSP_PER_PRCSN_HIGH;
+			BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+
+	//		Main_cmd.Target 	= eBSP_PER_TARGET_STTS22;
+	//		Main_cmd.Function	= eBSP_PER_FUNC_TEMP;
+	//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+	//
+	//		Main_cmd.Target 	= eBSP_PER_TARGET_LPS22D;
+	//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
+	//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+	//
+	//		Main_cmd.Target 	= eBSP_PER_TARGET_LIS2MDL;
+	//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
+	//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+	//
+	//		Main_cmd.Target 	= eBSP_PER_TARGET_LSM6DSV;
+	//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
+	//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+	//
+	//		Main_cmd.Target 	= eBSP_PER_TARGET_LSM6DSO;
+	//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
+	//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+	//
+	//		Main_cmd.Target 	= eBSP_PER_TARGET_LIS2DUX;
+	//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
+	//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+		}
 	}
 }
 
@@ -258,7 +267,8 @@ bool			BSP_I2C_Transmit_IT(tBSP_I2C_TxRx*	BSP_I2C_TxRx)
 
 	Main_ActiveDevice	= BSP_I2C_TxRx->Device;
 	Main_TO_Value		= BSP_I2C_TxRx->Timeout;
-	Main_TO_Target		= HAL_GetTick() + BSP_I2C_TxRx->Timeout;
+	uint32_t Now = (osKernelGetTickCount() * 1000) / osKernelGetTickFreq();
+	Main_TO_Target		= (Now + BSP_I2C_TxRx->Timeout);
 
 	return true;
 }
@@ -288,8 +298,9 @@ bool			BSP_I2C_Receive_IT(tBSP_I2C_TxRx*	BSP_I2C_TxRx)
 	if( BSP_RespCodes_Assert_HAL((HAL_result != HAL_OK), eBSP_RESP_CODE_HAL_ERR, HAL_result, BSP_I2C_TxRx->handle))	return false;
 
 	Main_ActiveDevice	= BSP_I2C_TxRx->Device;
+	uint32_t Now = (osKernelGetTickCount() * 1000) / osKernelGetTickFreq();
 	Main_TO_Value		= BSP_I2C_TxRx->Timeout;
-	Main_TO_Target		= HAL_GetTick() + BSP_I2C_TxRx->Timeout;
+	Main_TO_Target		= Now + BSP_I2C_TxRx->Timeout;
 
 	return true;
 }

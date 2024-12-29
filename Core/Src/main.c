@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -56,6 +57,57 @@ RTC_HandleTypeDef hrtc;
 
 UART_HandleTypeDef huart3;
 
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for taskI2C */
+osThreadId_t taskI2CHandle;
+const osThreadAttr_t taskI2C_attributes = {
+  .name = "taskI2C",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for TaskSHT40 */
+osThreadId_t TaskSHT40Handle;
+const osThreadAttr_t TaskSHT40_attributes = {
+  .name = "TaskSHT40",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for Queue_I2C_Master */
+osMessageQueueId_t Queue_I2C_MasterHandle;
+const osMessageQueueAttr_t Queue_I2C_Master_attributes = {
+  .name = "Queue_I2C_Master"
+};
+/* Definitions for Queue_I2C_Slaves */
+osMessageQueueId_t Queue_I2C_SlavesHandle;
+const osMessageQueueAttr_t Queue_I2C_Slaves_attributes = {
+  .name = "Queue_I2C_Slaves"
+};
+/* Definitions for Queue_SHT40 */
+osMessageQueueId_t Queue_SHT40Handle;
+const osMessageQueueAttr_t Queue_SHT40_attributes = {
+  .name = "Queue_SHT40"
+};
+/* Definitions for Timer_I2C_Periodic */
+osTimerId_t Timer_I2C_PeriodicHandle;
+const osTimerAttr_t Timer_I2C_Periodic_attributes = {
+  .name = "Timer_I2C_Periodic"
+};
+/* Definitions for Mutex_I2C_Busy */
+osMutexId_t Mutex_I2C_BusyHandle;
+const osMutexAttr_t Mutex_I2C_Busy_attributes = {
+  .name = "Mutex_I2C_Busy"
+};
+/* Definitions for Sem_I2C_Busy */
+osSemaphoreId_t Sem_I2C_BusyHandle;
+const osSemaphoreAttr_t Sem_I2C_Busy_attributes = {
+  .name = "Sem_I2C_Busy"
+};
 /* USER CODE BEGIN PV */
 static	uint8_t	Usart_RxBuf[64];
 static	uint8_t	Usart_RxBufIdx = 0;
@@ -70,6 +122,11 @@ static void MX_IWDG1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_I2C1_Init(void);
+void StartDefaultTask(void *argument);
+void task_I2C(void *argument);
+void task_SHT40(void *argument);
+void Cb_Timer_I2C_Periodic(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -219,19 +276,73 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();
+  /* Create the mutex(es) */
+  /* creation of Mutex_I2C_Busy */
+  Mutex_I2C_BusyHandle = osMutexNew(&Mutex_I2C_Busy_attributes);
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* Create the semaphores(s) */
+  /* creation of Sem_I2C_Busy */
+  Sem_I2C_BusyHandle = osSemaphoreNew(1, 1, &Sem_I2C_Busy_attributes);
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* Create the timer(s) */
+  /* creation of Timer_I2C_Periodic */
+  Timer_I2C_PeriodicHandle = osTimerNew(Cb_Timer_I2C_Periodic, osTimerPeriodic, NULL, &Timer_I2C_Periodic_attributes);
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* creation of Queue_I2C_Master */
+  Queue_I2C_MasterHandle = osMessageQueueNew (16, 16, &Queue_I2C_Master_attributes);
+
+  /* creation of Queue_I2C_Slaves */
+  Queue_I2C_SlavesHandle = osMessageQueueNew (32, 8, &Queue_I2C_Slaves_attributes);
+
+  /* creation of Queue_SHT40 */
+  Queue_SHT40Handle = osMessageQueueNew (10, 4, &Queue_SHT40_attributes);
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* creation of taskI2C */
+  taskI2CHandle = osThreadNew(task_I2C, NULL, &taskI2C_attributes);
+
+  /* creation of TaskSHT40 */
+  TaskSHT40Handle = osThreadNew(task_SHT40, NULL, &TaskSHT40_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if( HAL_IWDG_Refresh(&hiwdg1) != HAL_OK)
-	  {
-		  Error_Handler();
-	  }
-
-	  BSP_LED_MainLoop();
-	  BSP_USART_MainLoop();
-	  BSP_GPIO_MainLoop();
-	  BSP_I2C_MainLoop();
   }
     /* USER CODE END WHILE */
 
@@ -496,7 +607,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(Yellow_led_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -508,6 +619,41 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+	if( HAL_IWDG_Refresh(&hiwdg1) != HAL_OK)
+	{
+	Error_Handler();
+	}
+
+	BSP_LED_MainLoop();
+	BSP_USART_MainLoop();
+	BSP_GPIO_MainLoop();
+//	BSP_I2C_MainLoop();
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
+
+/* Cb_Timer_I2C_Periodic function */
+void Cb_Timer_I2C_Periodic(void *argument)
+{
+  /* USER CODE BEGIN Cb_Timer_I2C_Periodic */
+
+  /* USER CODE END Cb_Timer_I2C_Periodic */
+}
 
  /* MPU Configuration */
 
@@ -536,6 +682,27 @@ void MPU_Config(void)
   /* Enables the MPU */
   HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
 }
 
 /**
