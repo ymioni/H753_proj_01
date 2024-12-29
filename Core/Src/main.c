@@ -180,41 +180,41 @@ int main(void)
 	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
 	  }
 
-	  {
-	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_STTS22,
-								.Function = eBSP_PER_FUNC_TEMP};
-	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-	  }
-
-	  {
-	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LPS22D,
-								.Function = eBSP_PER_FUNC_GET_SN};
-	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-	  }
-
-	  {
-	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LIS2MDL,
-								.Function = eBSP_PER_FUNC_GET_SN};
-	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-	  }
-
-	  {
-	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LSM6DSV,
-								.Function = eBSP_PER_FUNC_GET_SN};
-	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-	  }
-
-	  {
-	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LSM6DSO,
-								.Function = eBSP_PER_FUNC_GET_SN};
-	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-	  }
-
-	  {
-	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LIS2DUX,
-								.Function = eBSP_PER_FUNC_GET_SN};
-	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-	  }
+//	  {
+//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_STTS22,
+//								.Function = eBSP_PER_FUNC_TEMP};
+//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
+//	  }
+//
+//	  {
+//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LPS22D,
+//								.Function = eBSP_PER_FUNC_GET_SN};
+//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
+//	  }
+//
+//	  {
+//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LIS2MDL,
+//								.Function = eBSP_PER_FUNC_GET_SN};
+//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
+//	  }
+//
+//	  {
+//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LSM6DSV,
+//								.Function = eBSP_PER_FUNC_GET_SN};
+//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
+//	  }
+//
+//	  {
+//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LSM6DSO,
+//								.Function = eBSP_PER_FUNC_GET_SN};
+//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
+//	  }
+//
+//	  {
+//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LIS2DUX,
+//								.Function = eBSP_PER_FUNC_GET_SN};
+//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
+//	  }
   }
 
   /* USER CODE END 2 */
