@@ -79,7 +79,7 @@ static	uint32_t				Main_Target			= 0;
 
 static	I2C_HandleTypeDef*		Main_Handle			= NULL;
 static	uint16_t				Main_Timer			= IDLE_DELAY_TIME;
-static	uint16_t				Main_Timeout		= 3000;
+static	uint16_t				Main_Timeout		= 1000;
 static	uint16_t				Main_Delay 			= 50;
 static	tCmd_SHT40				Main_Cmd			= 0;
 static  bool					Main_Set			= false;

@@ -55,6 +55,7 @@
 
 /* USER CODE BEGIN PV */
 static	I2C_HandleTypeDef*	Main_Handle	= NULL;
+
 static	tBSP_PER_DataCmd	Main_cmd	= {0};
 static	tBSP_PER_DataResp	Main_resp	= {0};
 
@@ -63,6 +64,8 @@ static	tBSP_PER_Target		Main_ActiveDevice	= eBSP_PER_TARGET_VOID;
 static	uint16_t			Main_TO_Value		= 0;
 static	uint32_t			Main_TO_Target		= 0;
 static	tBSP_I2C_TxRx		Main_BSP_I2C_TxRx	= {0};
+
+static	uint32_t			cnt[10] = {0};
 
 /* USER CODE END PV */
 
@@ -106,36 +109,19 @@ bool			BSP_I2C_Init( I2C_HandleTypeDef *handle)
 void task_I2C(void *argument)
 //void 			task_BSP_I2C_MainLoop( void)
 {
-	#define	Time		100
+	#define	Time		200
 	static	uint32_t	Target	= 0;
+	static 	uint32_t 	Now = 0;
 
 	for(;;)
 	{
 	    osDelay(1);
 
-		switch(Main_ActiveDevice)
-		{
-//		case	eBSP_PER_TARGET_SHT40A:		BSP_SHT40_MainLoop();	break;
-	//	case	eBSP_PER_TARGET_STTS22:		BSP_STTS22_MainLoop();	break;
-	//	case	eBSP_PER_TARGET_LPS22D:		BSP_LPS22D_MainLoop();	break;
-	//	case	eBSP_PER_TARGET_LIS2MDL:	BSP_LIS2MDL_MainLoop();	break;
-	//	case	eBSP_PER_TARGET_LSM6DSV:	BSP_LSM6DSV_MainLoop();	break;
-	//	case	eBSP_PER_TARGET_LSM6DSO:	BSP_LSM6DSO_MainLoop();	break;
-	//	case	eBSP_PER_TARGET_LIS2DUX:	BSP_LIS2DUX_MainLoop();	break;
-		default:
-//			BSP_SHT40_MainLoop();
-	//		BSP_STTS22_MainLoop();
-	//		BSP_LPS22D_MainLoop();
-	//		BSP_LIS2MDL_MainLoop();
-	//		BSP_LSM6DSV_MainLoop();
-	//		BSP_LSM6DSO_MainLoop();
-	//		BSP_LIS2DUX_MainLoop();
-			break;
-		}
-
-		uint32_t Now = (osKernelGetTickCount() * 1000) / osKernelGetTickFreq();
+cnt[0] ++;
+		Now = (osKernelGetTickCount() * 1000) / osKernelGetTickFreq();
 		if( (Main_TO_Value > 0) && (Now >= Main_TO_Target)) // TIMEOUT
 		{
+cnt[1] ++;
 			Main_ActiveDevice	= 0;
 			Main_TO_Value		= 0;
 			Main_TO_Target		= 0;
@@ -145,12 +131,14 @@ void task_I2C(void *argument)
 		//	DEBUG
 		if( Main_ActiveDevice > eBSP_PER_TARGET_VOID)
 		{
+cnt[2] ++;
 			Target = (Now + Time);
 			continue;
 		}
 
 		if( Now > Target)
 		{
+cnt[3] ++;
 			Target = (Now + Time);
 
 			Main_cmd.Target 	= eBSP_PER_TARGET_SHT40A;
