@@ -18,16 +18,17 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include ".\LED\Led.h"
 #include ".\USART\Usart.h"
 #include ".\GPIO\Gpio.h"
-#include ".\I2C\I2C.h"
 #include ".\PER\Peripherals.h"
 #include ".\Util\Util.h"
 #include ".\RespCodes.h"
+#include ".\Sens\task_Sensors.h"
 
 /* USER CODE END Includes */
 
@@ -56,6 +57,13 @@ RTC_HandleTypeDef hrtc;
 
 UART_HandleTypeDef huart3;
 
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* USER CODE BEGIN PV */
 static	uint8_t	Usart_RxBuf[64];
 static	uint8_t	Usart_RxBufIdx = 0;
@@ -70,6 +78,8 @@ static void MX_IWDG1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_I2C1_Init(void);
+void StartDefaultTask(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -144,7 +154,7 @@ int main(void)
   BSP_RespCodes_Init();
 
   // BSP
-  BSP_I2C_Init(&hi2c1);
+  BSP_Sensors_Init(&hi2c1);
 
   // LEDs
   BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_ON, 0);
@@ -167,73 +177,59 @@ int main(void)
   char	String[] = "\n\nSTART\n\n";
   BSP_USART_Receive(eBSP_USART_PORT_3, Main_USART_RxCplt);
   BSP_USART_Send(eBSP_USART_PORT_3, Main_USART_TxCplt, String, strlen(String));
-
-  // I2C (X-Nucleo --> peripherals)
-  {
-	  tBSP_PER_DataResp	resp;
-
-	  HAL_Delay(100);
-	  {
-	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_SHT40A,
-								.Function = eBSP_PER_FUNC_TEMP_RH,
-								.Precision = eBSP_PER_PRCSN_HIGH};
-	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-	  }
-
-//	  {
-//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_STTS22,
-//								.Function = eBSP_PER_FUNC_TEMP};
-//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-//	  }
-//
-//	  {
-//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LPS22D,
-//								.Function = eBSP_PER_FUNC_GET_SN};
-//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-//	  }
-//
-//	  {
-//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LIS2MDL,
-//								.Function = eBSP_PER_FUNC_GET_SN};
-//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-//	  }
-//
-//	  {
-//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LSM6DSV,
-//								.Function = eBSP_PER_FUNC_GET_SN};
-//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-//	  }
-//
-//	  {
-//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LSM6DSO,
-//								.Function = eBSP_PER_FUNC_GET_SN};
-//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-//	  }
-//
-//	  {
-//	  tBSP_PER_DataCmd	cmd	= {	.Target = eBSP_PER_TARGET_LIS2DUX,
-//								.Function = eBSP_PER_FUNC_GET_SN};
-//	  BSP_I2C_Cmd(&hi2c1, &cmd, &resp);
-//	  }
-  }
+  HAL_Delay(100);
 
   /* USER CODE END 2 */
+
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  xTaskCreate(	task_Sensors,
+				"task_Sensors",
+				128,
+				NULL,
+				tskIDLE_PRIORITY,
+				NULL);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if( HAL_IWDG_Refresh(&hiwdg1) != HAL_OK)
-	  {
-		  Error_Handler();
-	  }
-
-	  BSP_LED_MainLoop();
-	  BSP_USART_MainLoop();
-	  BSP_GPIO_MainLoop();
-	  BSP_I2C_MainLoop();
   }
-    /* USER CODE END WHILE */
+	/* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 
@@ -496,7 +492,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(Yellow_led_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -508,6 +504,32 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+	if( HAL_IWDG_Refresh(&hiwdg1) != HAL_OK)
+	{
+	  Error_Handler();
+	}
+
+	BSP_LED_MainLoop();
+	BSP_USART_MainLoop();
+	BSP_GPIO_MainLoop();
+  }
+  /* USER CODE END 5 */
+}
 
  /* MPU Configuration */
 
@@ -536,6 +558,27 @@ void MPU_Config(void)
   /* Enables the MPU */
   HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 
+}
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
 }
 
 /**
