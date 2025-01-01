@@ -57,6 +57,7 @@ typedef struct
 /* USER CODE BEGIN PFP */
 void				BSP_Sensors_Init( I2C_HandleTypeDef *handle);
 void 				task_Sensors( void *arguments);
+void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/

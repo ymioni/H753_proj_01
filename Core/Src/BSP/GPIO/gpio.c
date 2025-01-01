@@ -27,6 +27,7 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 #include "Gpio.h"
 #include "..\RespCodes.h"
+#include "..\Sens\task_Sensors.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -150,7 +151,15 @@ GPIO_TypeDef*	Port = NULL;
 		if( Port != NULL)
 		{
 			if( HAL_GPIO_ReadPin(Port, GPIO_Pin) == GPIO_PIN_SET)
+			{
 				printf("Blue button pressed\n");
+
+				tBSP_PER_DataCmd	Cmd;
+				Cmd.Target		=	eBSP_PER_TARGET_SHT40A;
+				Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
+				Cmd.Precision	=	eBSP_PER_PRCSN_HIGH;
+				BSP_Sensors_Cmd( &Cmd, true);
+			}
 			else
 				printf("Blue button released\n");
 		}

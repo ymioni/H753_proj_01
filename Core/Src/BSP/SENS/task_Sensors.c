@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "cmsis_os.h"
+#include "queue.h"
 #include "..\PER\Peripherals.h"
 #include "..\Util\Util.h"
 #include "..\RespCodes.h"
@@ -63,8 +64,7 @@ struct
 	void*					handle;
 }Main_Targets[eBSP_PER_MAX_VALUE_TARGET];
 
-static	osMessageQueueId_t 			Main_Q;
-static	const osMessageQueueAttr_t	Q_attributes = {	.name = "Q_Sens_App"};
+static	QueueHandle_t				Main_Q;
 static	tQ_Sensor_Cmd				Main_Q_Cmd;
 
 /* USER CODE END PV */
@@ -99,9 +99,15 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	Main_Targets[eBSP_PER_TARGET_LSM6DSO].handle	= Main_Info.hI2C;
 	Main_Targets[eBSP_PER_TARGET_LIS2DUX].handle	= Main_Info.hI2C;
 
-	Main_Q	= osMessageQueueNew(32, sizeof(tQ_Sensor_Cmd), &Q_attributes);
+	Main_Q	= xQueueCreate( 32, sizeof(tQ_Sensor_Cmd));
 
 	BSP_Sensors_InitSensors();
+
+	tBSP_PER_DataCmd	Cmd;
+	Cmd.Target		=	eBSP_PER_TARGET_SHT40A;
+	Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
+	Cmd.Precision	=	eBSP_PER_PRCSN_HIGH;
+	BSP_Sensors_Cmd( &Cmd, false);
 }
 
 /**
@@ -110,29 +116,73 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
   */
 void 				task_Sensors( void *arguments)
 {
-	tQ_Sensor_Cmd	Cmd = {0};
+	static tQ_Sensor_Cmd	Cmd = {0};
 
 	while(1)
 	{
 		osDelay(1);
 
-		osMessageQueueGet (Main_Q, &Cmd, NULL, osWaitForever);
+		xQueueReceive( Main_Q, &Cmd, portMAX_DELAY);
 
 		BSP_Sensors_TxCmd2Sensor(&Cmd);
 	}
 }
 
+/**
+  * @brief
+  * @retval
+  */
+void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
+{
+	Main_Q_Cmd.target	= Cmd->Target;
+	Main_Q_Cmd.func		= Cmd->Function;
+
+	switch(Main_Q_Cmd.target)
+	{
+	// SHT40
+	case	eBSP_PER_TARGET_SHT40A:
+		switch(Main_Q_Cmd.func)
+		{
+		case	eBSP_PER_FUNC_TEMP:
+		case	eBSP_PER_FUNC_RH:
+		case	eBSP_PER_FUNC_TEMP_RH:
+			Main_Q_Cmd.arg1	= Cmd->Precision;
+			break;
+
+		default:
+			break;
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	if( FromISR)
+	{
+		BaseType_t xHigherPriorityTaskWoken;
+		xHigherPriorityTaskWoken = pdFALSE;
+		xQueueSendFromISR( Main_Q, &Main_Q_Cmd, &xHigherPriorityTaskWoken );
+		xHigherPriorityTaskWoken = false;
+	}
+	else
+		xQueueSend( Main_Q, &Main_Q_Cmd, portMAX_DELAY);
+}
+
+/**
+  * @brief
+  * @retval
+  */
 static	void		BSP_Sensors_InitSensors( void)
 {
 	// SHT40
 	BSP_SHT40_Init(Main_Targets[eBSP_PER_TARGET_SHT40A].handle, BSP_Sensors_Cb_GetData);
-
-	Main_Q_Cmd.target	= eBSP_PER_TARGET_SHT40A;
-	Main_Q_Cmd.func		= eBSP_PER_FUNC_TEMP_RH;
-	Main_Q_Cmd.arg1		= eBSP_PER_PRCSN_HIGH;
-	osMessageQueuePut(Main_Q, &Main_Q_Cmd, 0, 0);
 }
 
+/**
+  * @brief
+  * @retval
+  */
 static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 {
 	tBSP_PER_DataCmd	Cmd = {0};
@@ -182,6 +232,10 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 	}
 }
 
+/**
+  * @brief
+  * @retval
+  */
 static	void		BSP_Sensors_Cb_GetData( tBSP_PER_DataResp* data)
 {
 	printf("BSP_Sensors_Cb_GetData\n");
