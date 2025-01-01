@@ -67,6 +67,8 @@ struct
 static	QueueHandle_t				Main_Q;
 static	tQ_Sensor_Cmd				Main_Q_Cmd;
 
+static	osTimerId_t					Main_Timer_idle;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,6 +76,7 @@ static	tQ_Sensor_Cmd				Main_Q_Cmd;
 static	void		BSP_Sensors_InitSensors( void);
 static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd);
 static	void		BSP_Sensors_Cb_GetData( tBSP_PER_DataResp* data);
+static	void		BSP_Sensors_Cb_Timer( void *argument);
 
 /* USER CODE END PFP */
 
@@ -108,6 +111,9 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
 	Cmd.Precision	=	eBSP_PER_PRCSN_HIGH;
 	BSP_Sensors_Cmd( &Cmd, false);
+
+	Main_Timer_idle	=	osTimerNew( BSP_Sensors_Cb_Timer, osTimerPeriodic, NULL, NULL);
+	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(3000));
 }
 
 /**
@@ -163,7 +169,6 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 		BaseType_t xHigherPriorityTaskWoken;
 		xHigherPriorityTaskWoken = pdFALSE;
 		xQueueSendFromISR( Main_Q, &Main_Q_Cmd, &xHigherPriorityTaskWoken );
-		xHigherPriorityTaskWoken = false;
 	}
 	else
 		xQueueSend( Main_Q, &Main_Q_Cmd, portMAX_DELAY);
@@ -239,6 +244,19 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 static	void		BSP_Sensors_Cb_GetData( tBSP_PER_DataResp* data)
 {
 	printf("BSP_Sensors_Cb_GetData\n");
+}
+
+/**
+  * @brief
+  * @retval
+  */
+static	void		BSP_Sensors_Cb_Timer( void *argument)
+{
+	tBSP_PER_DataCmd	Cmd;
+	Cmd.Target		=	eBSP_PER_TARGET_SHT40A;
+	Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
+	Cmd.Precision	=	eBSP_PER_PRCSN_HIGH;
+	BSP_Sensors_Cmd( &Cmd, true);
 }
 
 /* USER CODE END 4 */
