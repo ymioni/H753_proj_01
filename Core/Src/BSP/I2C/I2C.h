@@ -23,7 +23,6 @@
 #include "main.h"
 
 /* USER CODE END Includes */
-#include "..\PER\Peripherals.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
@@ -42,7 +41,6 @@ typedef	struct
 	uint16_t				DelayAfterTx;
 	uint16_t				DelayAfterRx;
 	uint16_t				Timeout;
-	BSP_I2C_Cb_Done			Cb_SessionEnd;
 }tBSP_I2C_Session;
 /* USER CODE END PTD */
 
@@ -64,7 +62,9 @@ typedef	struct
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-bool			BSP_I2C_Init( I2C_HandleTypeDef *handle);
+void				BSP_I2C_Init( I2C_HandleTypeDef *handle);
+void 				task_I2C( void *arguments);
+bool				BSP_I2C_Cmd( tBSP_I2C_Session Cmd);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/

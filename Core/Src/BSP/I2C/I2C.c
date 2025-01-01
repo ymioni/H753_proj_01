@@ -21,18 +21,13 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
-#include "I2C.h"
+#include "cmsis_os.h"
 #include "..\PER\Peripherals.h"
 #include "..\Util\Util.h"
 #include "..\RespCodes.h"
+#include "I2C.h"
 #include ".\SENS\SHT40.h"
-#include ".\SENS\STTS22.h"
-#include ".\SENS\LPS22D.h"
-#include ".\SENS\LIS2MDL.h"
-#include ".\SENS\LSM6DSV.h"
-#include ".\SENS\LSM6DSO.h"
-#include ".\SENS\LIS2DUX.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,27 +48,22 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-static	I2C_HandleTypeDef*	Main_Handle	= NULL;
-static	tBSP_PER_DataCmd	Main_cmd	= {0};
-static	tBSP_PER_DataResp	Main_resp	= {0};
+static	osMessageQueueId_t 			Main_Q;
+static	const osMessageQueueAttr_t	Q_attributes	= {	.name = "Q_I2C"};
+static	uint16_t					Main_RxLen		= 0;
+static	TaskHandle_t				Main_taskHandle	= NULL;
 
 // Bus handling
-static	tBSP_PER_Target		Main_ActiveDevice	= eBSP_PER_TARGET_VOID;
-static	uint16_t			Main_TO_Value		= 0;
-static	uint32_t			Main_TO_Target		= 0;
-static	tBSP_I2C_Session	Main_BSP_I2C_Session	= {0};
+//static	tBSP_PER_Target		Main_ActiveDevice	= eBSP_PER_TARGET_VOID;
+//static	uint16_t			Main_TO_Value		= 0;
+//static	uint32_t			Main_TO_Target		= 0;
+//static	tBSP_I2C_Session	Main_BSP_I2C_Session	= {0};
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-static void			BSP_I2C_Cb_GetData_SHT40( tBSP_PER_DataResp *Data);
-//static void			BSP_I2C_Cb_GetData_STTS22( tBSP_PER_DataResp *Data);
-//static void			BSP_I2C_Cb_GetData_LPS22D( tBSP_PER_DataResp *Data);
-//static void			BSP_I2C_Cb_GetData_LIS2MDL( tBSP_PER_DataResp *Data);
-//static void			BSP_I2C_Cb_GetData_LSM6DSV( tBSP_PER_DataResp *Data);
-//static void			BSP_I2C_Cb_GetData_LSM6DSO( tBSP_PER_DataResp *Data);
-//static void			BSP_I2C_Cb_GetData_LIS2DUX( tBSP_PER_DataResp *Data);
+static	void		BSP_I2C_Session( tBSP_I2C_Session Cmd);
 
 /* USER CODE END PFP */
 
@@ -85,94 +75,27 @@ static void			BSP_I2C_Cb_GetData_SHT40( tBSP_PER_DataResp *Data);
   * @brief
   * @retval
   */
-bool			BSP_I2C_Init( I2C_HandleTypeDef *handle)
+void				BSP_I2C_Init( I2C_HandleTypeDef *handle)
 {
-	BSP_SHT40_Init( handle, BSP_I2C_Cb_GetData_SHT40);
-//	BSP_STTS22_Init( handle, BSP_I2C_Cb_GetData_STTS22);
-//	BSP_LPS22D_Init( handle, BSP_I2C_Cb_GetData_LPS22D);
-//	BSP_LIS2MDL_Init( handle, BSP_I2C_Cb_GetData_LIS2MDL);
-//	BSP_LSM6DSV_Init( handle, BSP_I2C_Cb_GetData_LSM6DSV);
-//	BSP_LSM6DSO_Init( handle, BSP_I2C_Cb_GetData_LSM6DSO);
-//	BSP_LIS2DUX_Init( handle, BSP_I2C_Cb_GetData_LIS2DUX);
-	return true;
+	Main_Q	= osMessageQueueNew(16, sizeof(tBSP_I2C_Session), &Q_attributes);
+
 }
 
 /**
   * @brief
   * @retval
   */
-void 			BSP_I2C_MainLoop( void)
+void 				task_I2C( void *arguments)
 {
-	#define	Time		100
-	static	uint32_t	Target	= 0;
+	tBSP_I2C_Session	Cmd;
 
-	switch(Main_ActiveDevice)
+	while (1)
 	{
-	case	eBSP_PER_TARGET_SHT40A:		BSP_SHT40_MainLoop();	break;
-//	case	eBSP_PER_TARGET_STTS22:		BSP_STTS22_MainLoop();	break;
-//	case	eBSP_PER_TARGET_LPS22D:		BSP_LPS22D_MainLoop();	break;
-//	case	eBSP_PER_TARGET_LIS2MDL:	BSP_LIS2MDL_MainLoop();	break;
-//	case	eBSP_PER_TARGET_LSM6DSV:	BSP_LSM6DSV_MainLoop();	break;
-//	case	eBSP_PER_TARGET_LSM6DSO:	BSP_LSM6DSO_MainLoop();	break;
-//	case	eBSP_PER_TARGET_LIS2DUX:	BSP_LIS2DUX_MainLoop();	break;
-	default:
-		BSP_SHT40_MainLoop();
-//		BSP_STTS22_MainLoop();
-//		BSP_LPS22D_MainLoop();
-//		BSP_LIS2MDL_MainLoop();
-//		BSP_LSM6DSV_MainLoop();
-//		BSP_LSM6DSO_MainLoop();
-//		BSP_LIS2DUX_MainLoop();
-		break;
-	}
+		osDelay(1); // Consider whether this is necessary.
 
-	if( (Main_TO_Value > 0) && (HAL_GetTick() >= Main_TO_Target)) // TIMEOUT
-	{
-		Main_ActiveDevice	= 0;
-		Main_TO_Value		= 0;
-		Main_TO_Target		= 0;
-		Main_BSP_I2C_Session.Cb_RxDone(false);
-	}
+		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
 
-	//	DEBUG
-	if( Main_ActiveDevice > eBSP_PER_TARGET_VOID)
-	{
-		Target = HAL_GetTick() + Time;
-		return;
-	}
-
-	if( HAL_GetTick() > Target)
-	{
-		Target = HAL_GetTick() + Time;
-
-		Main_cmd.Target 	= eBSP_PER_TARGET_SHT40A;
-		Main_cmd.Function	= eBSP_PER_FUNC_TEMP_RH;
-		Main_cmd.Precision	= eBSP_PER_PRCSN_HIGH;
-		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
-
-//		Main_cmd.Target 	= eBSP_PER_TARGET_STTS22;
-//		Main_cmd.Function	= eBSP_PER_FUNC_TEMP;
-//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
-//
-//		Main_cmd.Target 	= eBSP_PER_TARGET_LPS22D;
-//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
-//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
-//
-//		Main_cmd.Target 	= eBSP_PER_TARGET_LIS2MDL;
-//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
-//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
-//
-//		Main_cmd.Target 	= eBSP_PER_TARGET_LSM6DSV;
-//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
-//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
-//
-//		Main_cmd.Target 	= eBSP_PER_TARGET_LSM6DSO;
-//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
-//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
-//
-//		Main_cmd.Target 	= eBSP_PER_TARGET_LIS2DUX;
-//		Main_cmd.Function	= eBSP_PER_FUNC_GET_SN;
-//		BSP_I2C_Cmd(Main_Handle, &Main_cmd, &Main_resp);
+		BSP_I2C_Session(Cmd);
 	}
 }
 
@@ -180,230 +103,60 @@ void 			BSP_I2C_MainLoop( void)
   * @brief
   * @retval
   */
-bool			BSP_I2C_Cmd(I2C_HandleTypeDef *handle, tBSP_PER_DataCmd *cmd, tBSP_PER_DataResp *resp)
+bool				BSP_I2C_Cmd( tBSP_I2C_Session Cmd)
 {
-	if( BSP_RespCodes_Assert_BSP((handle == NULL), BSP_ERROR_HANDLE_ERR))				return false;
-	if( BSP_RespCodes_Assert_BSP((cmd == NULL), BSP_ERROR_PARAM_NULL))					return false;
-	if( BSP_RespCodes_Assert_BSP((resp == NULL), BSP_ERROR_PARAM_NULL))					return false;
-
-	Main_Handle	= handle;
-	Main_cmd	= *cmd;
-	Main_resp	= *resp;
-
-	cmd->handle = handle;
-
-	switch( cmd->Target)
-	{
-	case	eBSP_PER_TARGET_SHT40A:
-		BSP_SHT40_Cmd( cmd);
-		break;
-
-//	case	eBSP_PER_TARGET_STTS22:
-//		BSP_STTS22_Cmd( cmd);
-//		break;
-//
-//	case	eBSP_PER_TARGET_LPS22D:
-//		BSP_LPS22D_Cmd( cmd);
-//		break;
-//
-//	case	eBSP_PER_TARGET_LIS2MDL:
-//		BSP_LIS2MDL_Cmd( cmd);
-//		break;
-//
-//	case	eBSP_PER_TARGET_LSM6DSV:
-//		BSP_LSM6DSV_Cmd( cmd);
-//		break;
-//
-//	case	eBSP_PER_TARGET_LSM6DSO:
-//		BSP_LSM6DSO_Cmd( cmd);
-//		break;
-//
-//	case	eBSP_PER_TARGET_LIS2DUX:
-//		BSP_LIS2DUX_Cmd( cmd);
-//		break;
-
-	default:
-		break;
-	}
+	osMessageQueuePut(Main_Q, &Cmd, 0, 0);
 
     return true;
 }
 
-/* USER CODE END 0 */
 /**
   * @brief
   * @retval
   */
-bool			BSP_I2C_IsBusy( void)
+static	void		BSP_I2C_Session( tBSP_I2C_Session Cmd)
 {
-	return(Main_ActiveDevice != eBSP_PER_TARGET_VOID);
-}
+	HAL_StatusTypeDef	HAL_result;
 
-/**
-  * @brief
-  * @retval
-  */
-bool			BSP_I2C_Transmit_IT(tBSP_I2C_Session*	BSP_I2C_TxRx)
-{
-	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx == NULL), BSP_ERROR_PARAM_NULL))			return false;
-	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->handle == NULL), BSP_ERROR_HANDLE_ERR))	return false;
-	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->Address == 0), BSP_ERROR_PARAM_ZERO))	return false;
-	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->pData == NULL), BSP_ERROR_PARAM_NULL))	return false;
-	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->Size == 0), BSP_ERROR_PARAM_ZERO))		return false;
+	Main_RxLen		= Cmd.RxLen;
+	Main_taskHandle	= xTaskGetCurrentTaskHandle();
 
-	Main_BSP_I2C_Session	= *BSP_I2C_TxRx;
+	HAL_result = HAL_I2C_Master_Transmit_IT(Cmd.i2cHandle, Cmd.Address, Cmd.TxBuf, Cmd.TxLen);
+	ulTaskNotifyTake(pdTRUE, 1000);
+	vTaskDelay(Cmd.DelayAfterTx);
 
-	HAL_StatusTypeDef	HAL_result = HAL_I2C_Master_Transmit_IT(BSP_I2C_TxRx->handle, BSP_I2C_TxRx->Address, BSP_I2C_TxRx->pData, BSP_I2C_TxRx->Size);
-	if( BSP_RespCodes_Assert_HAL((HAL_result != HAL_OK), eBSP_RESP_CODE_HAL_ERR, HAL_result, BSP_I2C_TxRx->handle))	return false;
-
-	Main_ActiveDevice	= BSP_I2C_TxRx->Device;
-	Main_TO_Value		= BSP_I2C_TxRx->Timeout;
-	Main_TO_Target		= HAL_GetTick() + BSP_I2C_TxRx->Timeout;
-
-	return true;
-}
-
-/**
-  * @brief
-  * @retval
-  */
-bool			BSP_I2C_Receive_IT(tBSP_I2C_Session*	BSP_I2C_TxRx)
-{
-	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx == NULL), BSP_ERROR_PARAM_NULL))			return false;
-	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->handle == NULL), BSP_ERROR_HANDLE_ERR))	return false;
-	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->Address == 0), BSP_ERROR_PARAM_ZERO))	return false;
-	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->pData == NULL), BSP_ERROR_PARAM_NULL))	return false;
-	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->Size == 0), BSP_ERROR_PARAM_ZERO))		return false;
-	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->Timeout == 0), BSP_ERROR_PARAM_ZERO))	return false;
-
-	Main_BSP_I2C_Session	= *BSP_I2C_TxRx;
-
-	// stretch timeout
-
-	HAL_StatusTypeDef	HAL_result = HAL_I2C_Master_Receive_IT(BSP_I2C_TxRx->handle, BSP_I2C_TxRx->Address, BSP_I2C_TxRx->pData, BSP_I2C_TxRx->Size);
-	if( HAL_result != HAL_OK)
+	if( Main_RxLen == 0)
 	{
-		Main_ActiveDevice	= eBSP_PER_TARGET_VOID;
+		xTaskNotifyGive(Cmd.taskHandle);
 	}
-	if( BSP_RespCodes_Assert_HAL((HAL_result != HAL_OK), eBSP_RESP_CODE_HAL_ERR, HAL_result, BSP_I2C_TxRx->handle))	return false;
-
-	Main_ActiveDevice	= BSP_I2C_TxRx->Device;
-	Main_TO_Value		= BSP_I2C_TxRx->Timeout;
-	Main_TO_Target		= HAL_GetTick() + BSP_I2C_TxRx->Timeout;
-
-	return true;
+	else
+	{
+		HAL_result = HAL_I2C_Master_Receive_IT(Cmd.i2cHandle, Cmd.Address, Cmd.RxBuf, Cmd.RxLen);
+		ulTaskNotifyTake(pdTRUE, 1000);
+		vTaskDelay(Cmd.DelayAfterRx);
+		xTaskNotifyGive(Cmd.taskHandle);
+	}
 }
 
-/**
-  * @brief
-  * @retval
-  */
 void			HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *handle)
 {
-	Main_BSP_I2C_Session.Cb_TxDone(true);
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-	if( Main_BSP_I2C_Session.Timeout == 0) // no need to receive data
-	{
-		Main_ActiveDevice	= eBSP_PER_TARGET_VOID;
-		Main_TO_Value		= 0;
-		Main_TO_Target		= 0;
-	}
+	vTaskNotifyGiveFromISR(Main_taskHandle, &xHigherPriorityTaskWoken);
 }
 
-/**
-  * @brief
-  * @retval
-  */
 void			HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *handle)
 {
-	Main_BSP_I2C_Session.Cb_RxDone(true);
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-	Main_ActiveDevice	= eBSP_PER_TARGET_VOID;
-	Main_TO_Value		= 0;
-	Main_TO_Target		= 0;
+	vTaskNotifyGiveFromISR(Main_taskHandle, &xHigherPriorityTaskWoken);
 }
 
-/**
-  * @brief
-  * @retval
-  */
-static void			BSP_I2C_Cb_GetData_SHT40( tBSP_PER_DataResp *Data)
+void			HAL_I2C_ErrorCallback(I2C_HandleTypeDef *handle)
 {
-	printf("[SHT40A] Addr:%.2X, SN:%lX, Temp:%.2f, H:%d\n",
-			Data->Address,
-			Data->SerialNumber,
-			Data->Temperature,
-			Data->Humidity_i);
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	vTaskNotifyGiveFromISR(Main_taskHandle, &xHigherPriorityTaskWoken);
 }
-
-/**
-  * @brief
-  * @retval
-  */
-//static void			BSP_I2C_Cb_GetData_STTS22( tBSP_PER_DataResp *Data)
-//{
-//	printf("[STTS22] Addr:%.2X, SN:%lX, CTRL:%.2X, STAT:%.2X, Temp:%.2f, H:%d\n",
-//			Data->Address,
-//			Data->SerialNumber,
-//			Data->Control,
-//			Data->Status,
-//			Data->Temperature,
-//			Data->Humidity_i);
-//}
-
-/**
-  * @brief
-  * @retval
-  */
-//static void			BSP_I2C_Cb_GetData_LPS22D( tBSP_PER_DataResp *Data)
-//{
-//	printf("[LPS22D] Addr:%.2X, SN:%lX\n",
-//			Data->Address,
-//			Data->SerialNumber);
-//}
-
-/**
-  * @brief
-  * @retval
-  */
-//static void			BSP_I2C_Cb_GetData_LIS2MDL( tBSP_PER_DataResp *Data)
-//{
-//	printf("[LIS2MDL] Addr:%.2X, SN:%lX\n",
-//			Data->Address,
-//			Data->SerialNumber);
-//}
-
-/**
-  * @brief
-  * @retval
-  */
-//static void			BSP_I2C_Cb_GetData_LSM6DSV( tBSP_PER_DataResp *Data)
-//{
-//	printf("[LSM6DSV] Addr:%.2X, SN:%lX\n",
-//			Data->Address,
-//			Data->SerialNumber);
-//}
-
-/**
-  * @brief
-  * @retval
-  */
-//static void			BSP_I2C_Cb_GetData_LSM6DSO( tBSP_PER_DataResp *Data)
-//{
-//	printf("[LSM6DSO] Addr:%.2X, SN:%lX\n",
-//			Data->Address,
-//			Data->SerialNumber);
-//}
-
-/**
-  * @brief
-  * @retval
-  */
-//static void			BSP_I2C_Cb_GetData_LIS2DUX( tBSP_PER_DataResp *Data)
-//{
-//	printf("[LIS2DUX] Addr:%.2X, SN:%lX\n",
-//			Data->Address,
-//			Data->SerialNumber);
-//}
 
 /* USER CODE END 4 */

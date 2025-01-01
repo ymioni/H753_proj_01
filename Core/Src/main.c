@@ -71,7 +71,7 @@ osThreadId_t task_SensorsHandle;
 const osThreadAttr_t task_Sensors_attributes = {
   .name = "task_Sensors",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityLow,
 };
 
 osThreadId_t task_SHT40Handle;
@@ -79,6 +79,13 @@ const osThreadAttr_t task_SHT40_attributes = {
   .name = "task_SHT40",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
+};
+
+osThreadId_t task_I2CHandle;
+const osThreadAttr_t task_I2C_attributes = {
+  .name = "task_I2C",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityAboveNormal,
 };
 
 /* USER CODE BEGIN PV */
@@ -219,11 +226,14 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   task_SensorsHandle	= osThreadNew(task_Sensors, NULL, &task_Sensors_attributes);
   task_SHT40Handle 		= osThreadNew(task_SHT40, NULL, &task_SHT40_attributes);
+  task_I2CHandle		= osThreadNew(task_I2C, NULL, &task_I2C_attributes);
+
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
   // BSP
   BSP_RespCodes_Init();
+  BSP_I2C_Init(&hi2c1);
   BSP_Sensors_Init(&hi2c1);
   /* USER CODE END RTOS_EVENTS */
 

@@ -69,7 +69,7 @@ typedef struct
 /* USER CODE BEGIN PFP */
 void				BSP_SHT40_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc);
 void 				task_SHT40( void *arguments);
-bool				BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd);
+bool				BSP_SHT40_Cmd( tBSP_PER_DataCmd* cmd);
 
 /* USER CODE END PFP */
 

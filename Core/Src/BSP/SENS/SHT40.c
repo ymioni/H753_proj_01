@@ -92,7 +92,6 @@ static	bool		BSP_SHT40_Transaction(tQ_Cmd Rec);
 static	void		BSP_SHT40_Transaction_Tx(bool Rx, tCmd_SHT40 Cmd);
 static	void		BSP_SHT40_Transaction_Rx(void);
 static	void		BSP_SHT40_Session(void);
-static	void		BSP_SHT40_Cb_SessionEnd(bool result);
 static	bool		BSP_SHT40_Transaction_SetData(tCmd_SHT40 Cmd);
 
 
@@ -133,7 +132,6 @@ void 				task_SHT40( void *arguments)
 		osDelay(1); // Consider whether this is necessary.
 
 		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
-		printf("SHT40: %.2X\n", Cmd.cmd);
 
 		BSP_SHT40_Transaction(Cmd);
 	}
@@ -293,7 +291,6 @@ static	void		BSP_SHT40_Transaction_Tx(bool Rx, tCmd_SHT40 Cmd)
 	Main_Session.Timeout		= Main_Timeout;
 	Main_Session.DelayAfterTx	= Main_Delay;
 	Main_Session.DelayAfterRx	= 0;
-	Main_Session.Cb_SessionEnd	= BSP_SHT40_Cb_SessionEnd;
 
 	if( Rx)
 		BSP_SHT40_Transaction_Rx();
@@ -303,12 +300,6 @@ static	void		BSP_SHT40_Transaction_Tx(bool Rx, tCmd_SHT40 Cmd)
 	if( Rx)
 	{
 		BSP_SHT40_Transaction_SetData(Cmd);
-
-		printf("SN: %lX Temp: %.2f RH(f): %.2f RH(i): %d\n",
-					Main_Per_DataResp.SerialNumber,
-					Main_Per_DataResp.Temperature,
-					Main_Per_DataResp.Humidity_f,
-					Main_Per_DataResp.Humidity_i);
 	}
 }
 
@@ -329,37 +320,9 @@ static	void		BSP_SHT40_Transaction_Rx(void)
   */
 static	void		BSP_SHT40_Session(void)
 {
-	HAL_StatusTypeDef	HAL_result;
+	BSP_I2C_Cmd(Main_Session);
 
-	HAL_result = HAL_I2C_Master_Transmit_IT(Main_Session.i2cHandle, Main_Session.Address, Main_Session.TxBuf, Main_Session.TxLen);
 	ulTaskNotifyTake(pdTRUE, 1000);
-	vTaskDelay(Main_Session.DelayAfterTx);
-	HAL_result = HAL_I2C_Master_Receive_IT(Main_Session.i2cHandle, Main_Session.Address, Main_Session.RxBuf, Main_Session.RxLen);
-	ulTaskNotifyTake(pdTRUE, 1000);
-	vTaskDelay(Main_Session.DelayAfterRx);
-}
-
-void			HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *handle)
-{
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
-	vTaskNotifyGiveFromISR(Main_Session.taskHandle, &xHigherPriorityTaskWoken);
-}
-
-void			HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *handle)
-{
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
-	vTaskNotifyGiveFromISR(Main_Session.taskHandle, &xHigherPriorityTaskWoken);
-}
-
-/**
-  * @brief
-  * @retval
-  */
-static	void		BSP_SHT40_Cb_SessionEnd(bool result)
-{
-	printf("BSP_SHT40_Cb_SessionEnd %d\n", result);
 }
 
 /**
@@ -392,6 +355,13 @@ static	bool			BSP_SHT40_Transaction_SetData(tCmd_SHT40 Cmd)
 		result = false;
 		break;
 	}
+
+	printf("SHT40  | Result: %d | SN: %lX Temp: %.2f RH(f): %.2f RH(i): %d\n",
+				result,
+				Main_Per_DataResp.SerialNumber,
+				Main_Per_DataResp.Temperature,
+				Main_Per_DataResp.Humidity_f,
+				Main_Per_DataResp.Humidity_i);
 
 	return result;
 }
