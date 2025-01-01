@@ -80,7 +80,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="Src/BSP/SENS/SHT40.c|Src/BSP/I2C/I2C.c|Src/BSP/SENS/LSM6DSV.c|Src/BSP/SENS/LIS2MDL..c|Src/BSP/SENS/LPS22D.c|Src/BSP/SENS/STTS22.c|Src/BSP/SENS/LSM6DSO.c|Src/BSP/SENS/LIS2DUX..c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry excluding="Src/BSP/I2C/I2C.c|Src/BSP/SENS/LSM6DSV.c|Src/BSP/SENS/LIS2MDL..c|Src/BSP/SENS/LPS22D.c|Src/BSP/SENS/STTS22.c|Src/BSP/SENS/LSM6DSO.c|Src/BSP/SENS/LIS2DUX..c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 					</sourceEntries>
@@ -160,7 +160,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="Src/BSP/SENS/SHT40.c|Src/BSP/I2C/I2C.c|Src/BSP/SENS/LSM6DSV.c|Src/BSP/SENS/LIS2MDL..c|Src/BSP/SENS/LPS22D.c|Src/BSP/SENS/STTS22.c|Src/BSP/SENS/LSM6DSO.c|Src/BSP/SENS/LIS2DUX..c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry excluding="Src/BSP/I2C/I2C.c|Src/BSP/SENS/LSM6DSV.c|Src/BSP/SENS/LIS2MDL..c|Src/BSP/SENS/LPS22D.c|Src/BSP/SENS/STTS22.c|Src/BSP/SENS/LSM6DSO.c|Src/BSP/SENS/LIS2DUX..c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 					</sourceEntries>

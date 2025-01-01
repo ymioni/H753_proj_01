@@ -41,7 +41,10 @@ typedef	enum
 	CMD_SHT40_HEATER_20MW_100MSEC			=	0x15,
 }tCmd_SHT40;
 
-typedef	void(*tCb_GetData_SHT40)(tBSP_PER_DataResp *Data);
+typedef struct
+{
+	tCmd_SHT40			cmd;
+} tQ_SHT40_Cmd;
 
 /* USER CODE END PTD */
 
@@ -64,9 +67,9 @@ typedef	void(*tCb_GetData_SHT40)(tBSP_PER_DataResp *Data);
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-bool			BSP_SHT40_Init( I2C_HandleTypeDef *handle, tCb_GetData_SHT40	CbFunc);
-void 			BSP_SHT40_MainLoop( void);
-bool			BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd);
+void				BSP_SHT40_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc);
+void 				task_SHT40( void *arguments);
+bool				BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd);
 
 /* USER CODE END PFP */
 

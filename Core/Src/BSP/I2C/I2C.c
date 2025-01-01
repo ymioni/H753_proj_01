@@ -61,7 +61,7 @@ static	tBSP_PER_DataResp	Main_resp	= {0};
 static	tBSP_PER_Target		Main_ActiveDevice	= eBSP_PER_TARGET_VOID;
 static	uint16_t			Main_TO_Value		= 0;
 static	uint32_t			Main_TO_Target		= 0;
-static	tBSP_I2C_TxRx		Main_BSP_I2C_TxRx	= {0};
+static	tBSP_I2C_Session	Main_BSP_I2C_Session	= {0};
 
 /* USER CODE END PV */
 
@@ -131,7 +131,7 @@ void 			BSP_I2C_MainLoop( void)
 		Main_ActiveDevice	= 0;
 		Main_TO_Value		= 0;
 		Main_TO_Target		= 0;
-		Main_BSP_I2C_TxRx.Cb_RxDone(false);
+		Main_BSP_I2C_Session.Cb_RxDone(false);
 	}
 
 	//	DEBUG
@@ -243,7 +243,7 @@ bool			BSP_I2C_IsBusy( void)
   * @brief
   * @retval
   */
-bool			BSP_I2C_Transmit_IT(tBSP_I2C_TxRx*	BSP_I2C_TxRx)
+bool			BSP_I2C_Transmit_IT(tBSP_I2C_Session*	BSP_I2C_TxRx)
 {
 	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx == NULL), BSP_ERROR_PARAM_NULL))			return false;
 	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->handle == NULL), BSP_ERROR_HANDLE_ERR))	return false;
@@ -251,7 +251,7 @@ bool			BSP_I2C_Transmit_IT(tBSP_I2C_TxRx*	BSP_I2C_TxRx)
 	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->pData == NULL), BSP_ERROR_PARAM_NULL))	return false;
 	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->Size == 0), BSP_ERROR_PARAM_ZERO))		return false;
 
-	Main_BSP_I2C_TxRx	= *BSP_I2C_TxRx;
+	Main_BSP_I2C_Session	= *BSP_I2C_TxRx;
 
 	HAL_StatusTypeDef	HAL_result = HAL_I2C_Master_Transmit_IT(BSP_I2C_TxRx->handle, BSP_I2C_TxRx->Address, BSP_I2C_TxRx->pData, BSP_I2C_TxRx->Size);
 	if( BSP_RespCodes_Assert_HAL((HAL_result != HAL_OK), eBSP_RESP_CODE_HAL_ERR, HAL_result, BSP_I2C_TxRx->handle))	return false;
@@ -267,7 +267,7 @@ bool			BSP_I2C_Transmit_IT(tBSP_I2C_TxRx*	BSP_I2C_TxRx)
   * @brief
   * @retval
   */
-bool			BSP_I2C_Receive_IT(tBSP_I2C_TxRx*	BSP_I2C_TxRx)
+bool			BSP_I2C_Receive_IT(tBSP_I2C_Session*	BSP_I2C_TxRx)
 {
 	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx == NULL), BSP_ERROR_PARAM_NULL))			return false;
 	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->handle == NULL), BSP_ERROR_HANDLE_ERR))	return false;
@@ -276,7 +276,7 @@ bool			BSP_I2C_Receive_IT(tBSP_I2C_TxRx*	BSP_I2C_TxRx)
 	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->Size == 0), BSP_ERROR_PARAM_ZERO))		return false;
 	if( BSP_RespCodes_Assert_BSP((BSP_I2C_TxRx->Timeout == 0), BSP_ERROR_PARAM_ZERO))	return false;
 
-	Main_BSP_I2C_TxRx	= *BSP_I2C_TxRx;
+	Main_BSP_I2C_Session	= *BSP_I2C_TxRx;
 
 	// stretch timeout
 
@@ -300,9 +300,9 @@ bool			BSP_I2C_Receive_IT(tBSP_I2C_TxRx*	BSP_I2C_TxRx)
   */
 void			HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *handle)
 {
-	Main_BSP_I2C_TxRx.Cb_TxDone(true);
+	Main_BSP_I2C_Session.Cb_TxDone(true);
 
-	if( Main_BSP_I2C_TxRx.Timeout == 0) // no need to receive data
+	if( Main_BSP_I2C_Session.Timeout == 0) // no need to receive data
 	{
 		Main_ActiveDevice	= eBSP_PER_TARGET_VOID;
 		Main_TO_Value		= 0;
@@ -316,7 +316,7 @@ void			HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *handle)
   */
 void			HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *handle)
 {
-	Main_BSP_I2C_TxRx.Cb_RxDone(true);
+	Main_BSP_I2C_Session.Cb_RxDone(true);
 
 	Main_ActiveDevice	= eBSP_PER_TARGET_VOID;
 	Main_TO_Value		= 0;

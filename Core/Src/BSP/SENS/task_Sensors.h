@@ -23,7 +23,6 @@
 #include "main.h"
 
 /* USER CODE END Includes */
-#include "cmsis_os.h"
 #include "..\PER\Peripherals.h"
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,10 +31,10 @@ typedef struct
 {
 	tBSP_PER_Target		target;
 	tBSP_PER_Func		func;
-	int32_t				val1;
-	int32_t				val2;
-	int32_t				val3;
-} tQ_Sensor_App;
+	int32_t				arg1;
+	int32_t				arg2;
+	int32_t				arg3;
+} tQ_Sensor_Cmd;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/

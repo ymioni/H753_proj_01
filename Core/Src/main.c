@@ -28,7 +28,9 @@
 #include ".\PER\Peripherals.h"
 #include ".\Util\Util.h"
 #include ".\RespCodes.h"
+#include ".\I2C\I2C.h"
 #include ".\Sens\task_Sensors.h"
+#include ".\Sens\SHT40.h"
 
 /* USER CODE END Includes */
 
@@ -64,6 +66,21 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+
+osThreadId_t task_SensorsHandle;
+const osThreadAttr_t task_Sensors_attributes = {
+  .name = "task_Sensors",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
+osThreadId_t task_SHT40Handle;
+const osThreadAttr_t task_SHT40_attributes = {
+  .name = "task_SHT40",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
 /* USER CODE BEGIN PV */
 static	uint8_t	Usart_RxBuf[64];
 static	uint8_t	Usart_RxBufIdx = 0;
@@ -150,11 +167,6 @@ int main(void)
   MX_USART3_UART_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  // BSP
-  BSP_RespCodes_Init();
-
-  // BSP
-  BSP_Sensors_Init(&hi2c1);
 
   // LEDs
   BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_ON, 0);
@@ -202,21 +214,17 @@ int main(void)
 
   /* Create the thread(s) */
   /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-
-  xTaskCreate(	task_Sensors,
-				"task_Sensors",
-				128,
-				NULL,
-				tskIDLE_PRIORITY,
-				NULL);
+  defaultTaskHandle 	= osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+  task_SensorsHandle	= osThreadNew(task_Sensors, NULL, &task_Sensors_attributes);
+  task_SHT40Handle 		= osThreadNew(task_SHT40, NULL, &task_SHT40_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
-  /* add events, ... */
+  // BSP
+  BSP_RespCodes_Init();
+  BSP_Sensors_Init(&hi2c1);
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
@@ -229,7 +237,7 @@ int main(void)
   while (1)
   {
   }
-	/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 

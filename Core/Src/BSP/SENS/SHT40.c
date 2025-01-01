@@ -21,10 +21,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "..\I2C\I2C.h"
+#include "cmsis_os.h"
 #include "..\PER\Peripherals.h"
 #include "..\Util\Util.h"
 #include "..\RespCodes.h"
+#include "..\I2C\I2C.h"
 #include "SHT40.h"
 /* USER CODE END Includes */
 
@@ -32,10 +33,9 @@
 /* USER CODE BEGIN PTD */
 typedef	struct
 {
-	tCmd_SHT40		Cmd;
-	bool			Set;
-}tCmdQueue;
-
+	tCmd_SHT40		cmd;
+	bool			set;
+}tQ_Cmd;
 
 /* USER CODE END PTD */
 
@@ -68,141 +68,86 @@ struct __PACKED
 	uint8_t		CRC_Humidity;
 }Data_SHT40_SN;
 
-static	tCb_GetData_SHT40		Main_Cb_GetData_SHT40;
-static  tBSP_PER_DataCmd		Main_Per_DataCmd	= {0};
-static	tBSP_PER_DataResp		Main_Per_DataResp	= {0};
 
-static 	bool					Main_Active			= false;
-static	uint8_t					Main_State			= 0;
-static	uint32_t				Main_Target			= 0;
+static	osMessageQueueId_t 			Main_Q;
+static	const osMessageQueueAttr_t	Q_attributes		= {	.name = "Q_SHT40"};
+static	I2C_HandleTypeDef*			Main_Handle 		= NULL;
+static	tCb_Sensor_GetData			Main_CbFunc			= NULL;
 
-static	I2C_HandleTypeDef*		Main_Handle			= NULL;
-static	uint16_t				Main_Timer			= 0;
-static	uint16_t				Main_Timeout		= 1000;
-static	uint16_t				Main_Delay 			= 50;
-static	tCmd_SHT40				Main_Cmd			= 0;
-static  bool					Main_Set			= false;
-static  bool					Main_Wait4Rx		= false;
+static	uint16_t					Main_Timeout		= 1000;
+static	uint16_t					Main_Delay 			= 50;
 
-static	uint8_t 				Main_TxBuf[2]		= {0};
-static	uint8_t 				Main_TxLen			= 0;
-static	uint8_t *				Main_RxBuf			= NULL;
-static	uint8_t 				Main_RxLen			= 0;
-
-#define MAX_Q_LEN				10
-static	tCmdQueue				Main_Q[MAX_Q_LEN]	= {0};
-static	uint8_t					Main_Q_Idx_W		= 0;
-static	uint8_t					Main_Q_Idx_R		= 0;
-static	uint8_t					Main_Q_Idx_Cnt		= 0;
+static	uint8_t 					Main_TxBuf[2]		= {0};
+static	uint8_t 					Main_TxLen			= 0;
+static	uint8_t *					Main_RxBuf			= NULL;
+static	uint8_t 					Main_RxLen			= 0;
+static	tBSP_I2C_Session			Main_Session		= {0};
+static	tBSP_PER_DataResp			Main_Per_DataResp	= {0};
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-static	bool			BSP_SHT40_Enqueue( tCmd_SHT40 Cmd, bool Set);
-static	tCmdQueue		BSP_SHT40_Dequeue( void);
-static	bool			BSP_SHT40_Transaction( tCmdQueue Rec);
-static	bool			BSP_SHT40_Transaction_TxRx(void);
-static	bool			BSP_SHT40_Transaction_Tx(void);
-static	bool			BSP_SHT40_Transaction_Rx(void);
-static	bool			BSP_SHT40_Transaction_SetData(tCmd_SHT40 Cmd);
-static	void			BSP_SHT40_Cb_TxDone(bool result);
-static	void			BSP_SHT40_Cb_RxDone(bool result);
+static	bool		BSP_SHT40_Transaction(tQ_Cmd Rec);
+static	void		BSP_SHT40_Transaction_Tx(bool Rx, tCmd_SHT40 Cmd);
+static	void		BSP_SHT40_Transaction_Rx(void);
+static	void		BSP_SHT40_Session(void);
+static	void		BSP_SHT40_Cb_SessionEnd(bool result);
+static	bool		BSP_SHT40_Transaction_SetData(tCmd_SHT40 Cmd);
+
+
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
 /* USER CODE END 0 */
 /**
   * @brief
   * @retval
   */
-bool			BSP_SHT40_Init( I2C_HandleTypeDef *handle, tCb_GetData_SHT40	CbFunc)
+void				BSP_SHT40_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc)
 {
-	if( BSP_RespCodes_Assert_BSP((handle == NULL), BSP_ERROR_HANDLE_ERR))				return false;
-	if( BSP_RespCodes_Assert_BSP((CbFunc == NULL), BSP_ERROR_PARAM_NULL))				return false;
+	tQ_Cmd	Cmd = {0};
 
-	Main_Handle					= handle;
-	Main_Cb_GetData_SHT40		= CbFunc;
+	Main_Handle = handle;
+	Main_CbFunc	= CbFunc;
 
-	Main_Per_DataResp.Address	= (I2C_DEVICE_ADDRESS_SHT40 >> 1);
+	Main_Q	= osMessageQueueNew(16, sizeof(tQ_Cmd), &Q_attributes);
 
-	Main_Active = 	true;
-	Main_Target	=	0;
-	Main_State	=	0;
-
-	Main_Per_DataCmd.handle		=	handle;
-
-	// Optional
-	Main_Per_DataCmd.Function	=	eBSP_PER_FUNC_GET_SN;
-	BSP_SHT40_Cmd( &Main_Per_DataCmd);
-
-	return true;
+	Cmd.cmd	= CMD_SHT40_GET_SN;
+	Cmd.set	= false;
+	osMessageQueuePut(Main_Q, &Cmd, 0, 0);
 }
 
 /**
   * @brief
   * @retval
   */
-void 			BSP_SHT40_MainLoop( void)
+void 				task_SHT40( void *arguments)
 {
-	if( Main_Active == false)			return;
-	if( HAL_GetTick() < Main_Target)	return;
+	tQ_Cmd Cmd;
 
-	switch(Main_State)
+	while (1)
 	{
-	case	0:
-		if( BSP_I2C_IsBusy())	break;
+		osDelay(1); // Consider whether this is necessary.
 
-		tCmdQueue Rec = BSP_SHT40_Dequeue();
-		if( Rec.Cmd != 0)
-		{
-			BSP_SHT40_Transaction(Rec);
-			Main_State ++;
-		}
-		break;
+		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
+		printf("SHT40: %.2X\n", Cmd.cmd);
 
-	case	1:
-		break;
-
-	case	2:
-		Main_Timer	=	Main_Delay;
-		Main_State ++;
-		break;
-
-	case	3:
-		if( Main_Wait4Rx == true)
-		{
-			BSP_SHT40_Transaction_Rx();
-			Main_Timer	=	Main_Delay;
-		}
-		Main_State 	=	0;
-		break;
-
-	default:
-		Main_Timer	=	0;
-		Main_State	=	0;
-		break;
+		BSP_SHT40_Transaction(Cmd);
 	}
-
-	Main_Target = HAL_GetTick() + Main_Timer;
 }
 
-/**
-  * @brief
-  * @retval
-  */
-bool			BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd)
+bool				BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd)
 {
+	tQ_Cmd	Cmd = {0};
 	bool	result = true;
 
-	if( BSP_RespCodes_Assert_BSP((cmd == NULL), BSP_ERROR_PARAM_NULL))				return false;
-	if( BSP_RespCodes_Assert_BSP((cmd->handle == NULL), BSP_ERROR_HANDLE_ERR))		return false;
+	if( BSP_RespCodes_Assert_BSP((cmd == NULL), BSP_ERROR_PARAM_NULL))							return false;
 
-	Main_Per_DataCmd 	= *cmd;
-	Main_Handle			= cmd->handle;
+	Cmd.cmd	= 0;
+	Cmd.set	= false;
 
 	switch(cmd->Function)
 	{
@@ -211,19 +156,19 @@ bool			BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd)
 	case	eBSP_PER_FUNC_TEMP_RH:
 		switch( cmd->Precision)
 		{
-		case	eBSP_PER_PRCSN_LOW:		result = BSP_SHT40_Enqueue(CMD_SHT40_GET_TEMP_RH_PRECISION_LO, BSP_GET);	break;
-		case	eBSP_PER_PRCSN_MED:		result = BSP_SHT40_Enqueue(CMD_SHT40_GET_TEMP_RH_PRECISION_MED, BSP_GET);	break;
+		case	eBSP_PER_PRCSN_LOW:		Cmd.cmd	= CMD_SHT40_GET_TEMP_RH_PRECISION_LO;	break;
+		case	eBSP_PER_PRCSN_MED:		Cmd.cmd	= CMD_SHT40_GET_TEMP_RH_PRECISION_MED;	break;
 		case	eBSP_PER_PRCSN_HIGH:
-		default:						result = BSP_SHT40_Enqueue(CMD_SHT40_GET_TEMP_RH_PRECISION_HI, BSP_GET);	break;
+		default:						Cmd.cmd	= CMD_SHT40_GET_TEMP_RH_PRECISION_HI;	break;
 		}
 		break;
 
 	case	eBSP_PER_FUNC_GET_SN:
-		result = BSP_SHT40_Enqueue(CMD_SHT40_GET_SN, BSP_GET);
+		Cmd.cmd	= CMD_SHT40_GET_SN;
 		break;
 
 	case	eBSP_PER_FUNC_RESET:
-		result = BSP_SHT40_Enqueue(CMD_SHT40_RESET, BSP_SET);
+		Cmd.cmd	= CMD_SHT40_RESET;
 		break;
 
 	case	eBSP_PER_FUNC_HEATER:
@@ -232,33 +177,37 @@ bool			BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd)
 		case	200:
 			switch( cmd->Time_msec)
 			{
-			case	1000:	result = BSP_SHT40_Enqueue(CMD_SHT40_HEATER_200MW_1000MSEC, BSP_SET);	break;
-			case	100:	result = BSP_SHT40_Enqueue(CMD_SHT40_HEATER_200MW_100MSEC, BSP_SET);	break;
+			case	1000:	Cmd.cmd	= CMD_SHT40_HEATER_200MW_1000MSEC;	break;
+			case	100:	Cmd.cmd	= CMD_SHT40_HEATER_200MW_100MSEC;	break;
 			}
 			break;
 
 		case	110:
 			switch( cmd->Time_msec)
 			{
-			case	1000:	result = BSP_SHT40_Enqueue(CMD_SHT40_HEATER_110MW_1000MSEC, BSP_SET);	break;
-			case	100:	result = BSP_SHT40_Enqueue(CMD_SHT40_HEATER_110MW_100MSEC, BSP_SET);	break;
+			case	1000:	Cmd.cmd	= CMD_SHT40_HEATER_110MW_1000MSEC;	break;
+			case	100:	Cmd.cmd	= CMD_SHT40_HEATER_110MW_100MSEC;	break;
 			}
 			break;
 
 		case	20:
 			switch( cmd->Time_msec)
 			{
-			case	1000:	result = BSP_SHT40_Enqueue(CMD_SHT40_HEATER_20MW_1000MSEC, BSP_SET);	break;
-			case	100:	result = BSP_SHT40_Enqueue(CMD_SHT40_HEATER_20MW_100MSEC, BSP_SET);		break;
+			case	1000:	Cmd.cmd	= CMD_SHT40_HEATER_20MW_1000MSEC;	break;
+			case	100:	Cmd.cmd	= CMD_SHT40_HEATER_20MW_100MSEC;	break;
 			}
 			break;
 		}
 		break;
 
 	default:
-		return false;
 		break;
 	}
+
+	if( Cmd.cmd == 0)
+		result = false;
+	else
+		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
 
 	return	result;
 }
@@ -267,60 +216,22 @@ bool			BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd)
   * @brief
   * @retval
   */
-static	bool			BSP_SHT40_Enqueue( tCmd_SHT40 Cmd, bool Set)
-{
-	tCmdQueue Rec = {.Cmd = Cmd, .Set = Set};
-
-	if( Main_Q_Idx_Cnt >= MAX_Q_LEN)
-		return false;
-
-	if( Main_Q_Idx_W >= MAX_Q_LEN)	Main_Q_Idx_W	=	0;
-	Main_Q[Main_Q_Idx_W ++]	=	Rec;
-	if( Main_Q_Idx_W >= MAX_Q_LEN)	Main_Q_Idx_W	=	0;
-	Main_Q_Idx_Cnt	++;
-
-	return true;
-}
-
-/**
-  * @brief
-  * @retval
-  */
-static	tCmdQueue		BSP_SHT40_Dequeue( void)
-{
-	tCmdQueue	Rec = {0};
-
-	if(Main_Q_Idx_Cnt > 0)
-	{
-		if( Main_Q_Idx_R >= MAX_Q_LEN)	Main_Q_Idx_R	=	0;
-		Rec = Main_Q[Main_Q_Idx_R ++];
-		if( Main_Q_Idx_W >= MAX_Q_LEN)	Main_Q_Idx_R	=	0;
-		Main_Q_Idx_Cnt --;
-	}
-
-	return Rec;
-}
-
-/**
-  * @brief
-  * @retval
-  */
-static	bool	BSP_SHT40_Transaction(tCmdQueue Rec)
+static	bool		BSP_SHT40_Transaction(tQ_Cmd Rec)
 {
 	bool	result = true;
 	uint8_t	idx = 0;
 
-	switch(Rec.Cmd)
+	switch(Rec.cmd)
 	{
 	case	CMD_SHT40_GET_SN:
-		Main_TxBuf[idx ++]	=	Rec.Cmd;
+		Main_TxBuf[idx ++]	=	Rec.cmd;
 		Main_TxLen = idx;
 		Main_RxBuf	= (uint8_t *)&Data_SHT40_SN;
 		Main_RxLen	= sizeof(Data_SHT40_SN);
 		break;
 
 	case	CMD_SHT40_RESET:
-		Main_TxBuf[idx ++]	=	Rec.Cmd;
+		Main_TxBuf[idx ++]	=	Rec.cmd;
 		Main_TxLen = idx;
 		Main_RxLen	= 0;
 		break;
@@ -328,7 +239,7 @@ static	bool	BSP_SHT40_Transaction(tCmdQueue Rec)
 	case	CMD_SHT40_GET_TEMP_RH_PRECISION_HI:
 	case	CMD_SHT40_GET_TEMP_RH_PRECISION_MED:
 	case	CMD_SHT40_GET_TEMP_RH_PRECISION_LO:
-		Main_TxBuf[idx ++]	=	Rec.Cmd;
+		Main_TxBuf[idx ++]	=	Rec.cmd;
 		Main_TxLen = idx;
 		Main_RxBuf	= (uint8_t *)&Data_SHT40_Temp;
 		Main_RxLen	= sizeof(Data_SHT40_Temp);
@@ -340,7 +251,7 @@ static	bool	BSP_SHT40_Transaction(tCmdQueue Rec)
 	case	CMD_SHT40_HEATER_110MW_100MSEC:
 	case	CMD_SHT40_HEATER_20MW_1000MSEC:
 	case	CMD_SHT40_HEATER_20MW_100MSEC:
-		Main_TxBuf[idx ++]	=	Rec.Cmd;
+		Main_TxBuf[idx ++]	=	Rec.cmd;
 		Main_TxLen = idx;
 		Main_RxLen	= 0;
 		break;
@@ -352,15 +263,13 @@ static	bool	BSP_SHT40_Transaction(tCmdQueue Rec)
 
 	if( result == true)
 	{
-		Main_Cmd = Rec.Cmd;
-		Main_Set = Rec.Set;
-		if( Main_Set == BSP_GET)
+		if( Rec.set == BSP_GET)
 		{
-			result = BSP_SHT40_Transaction_TxRx();
+			BSP_SHT40_Transaction_Tx(true, Rec.cmd);
 		}
 		else
 		{
-			result = BSP_SHT40_Transaction_Tx();
+			BSP_SHT40_Transaction_Tx(false, Rec.cmd);
 		}
 	}
 
@@ -371,81 +280,86 @@ static	bool	BSP_SHT40_Transaction(tCmdQueue Rec)
   * @brief
   * @retval
   */
-static	bool			BSP_SHT40_Transaction_TxRx(void)
+static	void		BSP_SHT40_Transaction_Tx(bool Rx, tCmd_SHT40 Cmd)
 {
-	Main_Wait4Rx = true;
-	return( BSP_SHT40_Transaction_Tx());
-}
+	Main_Session.i2cHandle		= Main_Handle;
+	Main_Session.taskHandle		= xTaskGetCurrentTaskHandle();
+	Main_Session.Address		= I2C_DEVICE_ADDRESS_SHT40;
+	Main_Session.Device			= eBSP_PER_TARGET_SHT40A;
+	Main_Session.TxBuf			= Main_TxBuf;
+	Main_Session.TxLen			= Main_TxLen;
+	Main_Session.RxBuf			= NULL;
+	Main_Session.RxLen			= 0;
+	Main_Session.Timeout		= Main_Timeout;
+	Main_Session.DelayAfterTx	= Main_Delay;
+	Main_Session.DelayAfterRx	= 0;
+	Main_Session.Cb_SessionEnd	= BSP_SHT40_Cb_SessionEnd;
 
-/**
-  * @brief
-  * @retval
-  */
-static	bool			BSP_SHT40_Transaction_Tx(void)
-{
-	tBSP_I2C_TxRx	BSP_I2C_TxRx = {	.handle		= Main_Handle,
-										.Address	= I2C_DEVICE_ADDRESS_SHT40,
-										.Device		= eBSP_PER_TARGET_SHT40A,
-										.pData		= Main_TxBuf,
-										.Size		= Main_TxLen,
-										.Timeout	= (Main_Set == BSP_SET) ? 0 : Main_Timeout,
-										.Cb_TxDone	= BSP_SHT40_Cb_TxDone};
-	while(BSP_I2C_IsBusy());
-	return(BSP_I2C_Transmit_IT(&BSP_I2C_TxRx));
-}
+	if( Rx)
+		BSP_SHT40_Transaction_Rx();
 
-/**
-  * @brief
-  * @retval
-  */
-static	bool			BSP_SHT40_Transaction_Rx(void)
-{
-	bool	result;
+	BSP_SHT40_Session();
 
-	tBSP_I2C_TxRx	BSP_I2C_TxRx = {	.handle		= Main_Handle,
-										.Address	= I2C_DEVICE_ADDRESS_SHT40,
-										.Device		= eBSP_PER_TARGET_SHT40A,
-										.pData		= Main_RxBuf,
-										.Size		= Main_RxLen,
-										.Timeout	= Main_Timeout,
-										.Cb_RxDone	= BSP_SHT40_Cb_RxDone};
-	result =	BSP_I2C_Receive_IT(&BSP_I2C_TxRx);
-	if( result == false)
-		Main_Wait4Rx = false;
-
-	return( result);
-}
-
-/**
-  * @brief
-  * @retval
-  */
-static	void			BSP_SHT40_Cb_TxDone(bool result)
-{
-	if( result == false)
+	if( Rx)
 	{
-		Main_Wait4Rx = false;
-		return; // Timeout
-	}
+		BSP_SHT40_Transaction_SetData(Cmd);
 
-	Main_State = 2;
+		printf("SN: %lX Temp: %.2f RH(f): %.2f RH(i): %d\n",
+					Main_Per_DataResp.SerialNumber,
+					Main_Per_DataResp.Temperature,
+					Main_Per_DataResp.Humidity_f,
+					Main_Per_DataResp.Humidity_i);
+	}
 }
 
 /**
   * @brief
   * @retval
   */
-static	void			BSP_SHT40_Cb_RxDone(bool result)
+static	void		BSP_SHT40_Transaction_Rx(void)
 {
-	Main_Wait4Rx = false;
-	if( result == false)
-		return; // Timeout
+	Main_Session.RxBuf			= Main_RxBuf;
+	Main_Session.RxLen			= Main_RxLen;
+	Main_Session.DelayAfterRx	= Main_Delay;
+}
 
-	if( BSP_SHT40_Transaction_SetData(Main_Cmd) == true)
-	{
-		if(Main_Cb_GetData_SHT40 != NULL)
-			Main_Cb_GetData_SHT40(&Main_Per_DataResp);
-	}
+/**
+  * @brief
+  * @retval
+  */
+static	void		BSP_SHT40_Session(void)
+{
+	HAL_StatusTypeDef	HAL_result;
+
+	HAL_result = HAL_I2C_Master_Transmit_IT(Main_Session.i2cHandle, Main_Session.Address, Main_Session.TxBuf, Main_Session.TxLen);
+	ulTaskNotifyTake(pdTRUE, 1000);
+	vTaskDelay(Main_Session.DelayAfterTx);
+	HAL_result = HAL_I2C_Master_Receive_IT(Main_Session.i2cHandle, Main_Session.Address, Main_Session.RxBuf, Main_Session.RxLen);
+	ulTaskNotifyTake(pdTRUE, 1000);
+	vTaskDelay(Main_Session.DelayAfterRx);
+}
+
+void			HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *handle)
+{
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	vTaskNotifyGiveFromISR(Main_Session.taskHandle, &xHigherPriorityTaskWoken);
+}
+
+void			HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *handle)
+{
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	vTaskNotifyGiveFromISR(Main_Session.taskHandle, &xHigherPriorityTaskWoken);
+}
+
+/**
+  * @brief
+  * @retval
+  */
+static	void		BSP_SHT40_Cb_SessionEnd(bool result)
+{
+	printf("BSP_SHT40_Cb_SessionEnd %d\n", result);
 }
 
 /**

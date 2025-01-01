@@ -78,9 +78,20 @@ typedef	enum
 	eBSP_PER_MAX_VALUE_PRCSN			//
 }tBSP_PER_Precision;
 
+
+typedef	enum
+{
+	eBSP_PER_STATE_IDLE			,		//
+	eBSP_PER_STATE_INIT			,		//
+	eBSP_PER_STATE_BUSY			,		//
+	eBSP_PER_STATE_ERROR		,		//
+	eBSP_PER_STATE_INACTIVE		,		//
+	/***** DON'T CROSS THIS LINE *****/
+	eBSP_PER_MAX_VALUE_STATE			//
+}tBSP_PER_State;
+
 typedef struct
 {
-	void *				handle;
 	tBSP_PER_Target		Target;
 	tBSP_PER_Func		Function;
 	tBSP_PER_Precision	Precision;
@@ -100,6 +111,8 @@ typedef struct
 	uint8_t				Status;
 }tBSP_PER_DataResp;
 /* USER CODE END ET */
+
+typedef	void(*tCb_Sensor_GetData)(tBSP_PER_DataResp *Data);
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
