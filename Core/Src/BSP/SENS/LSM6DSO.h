@@ -37,7 +37,7 @@ typedef	void(*tCb_GetData_LSM6DSO)(tBSP_PER_DataResp *Data);
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define I2C_DEVICE_ADDRESS_LSM6DSO		(0x6B << 1)
+#define I2C_DEVICE_ADDRESS_LSM6DSO		(0x6A << 1)
 
 /* USER CODE END PD */
 

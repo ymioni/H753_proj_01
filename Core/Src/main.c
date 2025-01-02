@@ -36,7 +36,7 @@
 #include ".\Sens\LIS2MDL.h"
 #include ".\Sens\LSM6DSV.h"
 #include ".\Sens\LSM6DSO.h"
-//#include ".\Sens\LIS2DUX.h"
+#include ".\Sens\LIS2DUX.h"
 
 /* USER CODE END Includes */
 
@@ -118,6 +118,13 @@ const osThreadAttr_t task_LSM6DSV_attributes = {
 osThreadId_t task_LSM6DSOHandle;
 const osThreadAttr_t task_LSM6DSO_attributes = {
   .name = "task_LSM6DSO",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
+osThreadId_t task_LIS2DUXHandle;
+const osThreadAttr_t task_LIS2DUX_attributes = {
+  .name = "task_LIS2DUX",
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
@@ -273,6 +280,7 @@ int main(void)
   task_LIS2MDLHandle	= osThreadNew(task_LIS2MDL, NULL, &task_LIS2MDL_attributes);
   task_LSM6DSVHandle	= osThreadNew(task_LSM6DSV, NULL, &task_LSM6DSV_attributes);
   task_LSM6DSOHandle	= osThreadNew(task_LSM6DSO, NULL, &task_LSM6DSO_attributes);
+  task_LIS2DUXHandle	= osThreadNew(task_LIS2DUX, NULL, &task_LSM6DSO_attributes);
 
   /* USER CODE END RTOS_THREADS */
 

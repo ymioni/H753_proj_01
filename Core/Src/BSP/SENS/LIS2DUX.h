@@ -54,9 +54,9 @@ typedef	void(*tCb_GetData_LIS2DUX)(tBSP_PER_DataResp *Data);
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-bool			BSP_LIS2DUX_Init( I2C_HandleTypeDef *handle, tCb_GetData_LIS2DUX	CbFunc);
-void 			BSP_LIS2DUX_MainLoop( void);
-bool			BSP_LIS2DUX_Cmd( tBSP_PER_DataCmd	*cmd);
+void				BSP_LIS2DUX_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc);
+void 				task_LIS2DUX( void *arguments);
+bool				BSP_LIS2DUX_Cmd( tBSP_PER_DataCmd* cmd);
 
 /* USER CODE END PFP */
 
