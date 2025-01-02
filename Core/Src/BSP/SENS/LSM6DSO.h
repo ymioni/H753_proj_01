@@ -37,7 +37,7 @@ typedef	void(*tCb_GetData_LSM6DSO)(tBSP_PER_DataResp *Data);
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define I2C_DEVICE_ADDRESS_LSM6DSO		(0x6A << 1)
+#define I2C_DEVICE_ADDRESS_LSM6DSO		(0x6B << 1)
 
 /* USER CODE END PD */
 
@@ -54,9 +54,9 @@ typedef	void(*tCb_GetData_LSM6DSO)(tBSP_PER_DataResp *Data);
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-bool			BSP_LSM6DSO_Init( I2C_HandleTypeDef *handle, tCb_GetData_LSM6DSO	CbFunc);
-void 			BSP_LSM6DSO_MainLoop( void);
-bool			BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd);
+void				BSP_LSM6DSO_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc);
+void 				task_LSM6DSO( void *arguments);
+bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd* cmd);
 
 /* USER CODE END PFP */
 
