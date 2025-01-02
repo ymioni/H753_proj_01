@@ -54,9 +54,9 @@ typedef	void(*tCb_GetData_LSM6DSV)(tBSP_PER_DataResp *Data);
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-bool			BSP_LSM6DSV_Init( I2C_HandleTypeDef *handle, tCb_GetData_LSM6DSV	CbFunc);
-void 			BSP_LSM6DSV_MainLoop( void);
-bool			BSP_LSM6DSV_Cmd( tBSP_PER_DataCmd	*cmd);
+void				BSP_LSM6DSV_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc);
+void 				task_LSM6DSV( void *arguments);
+bool				BSP_LSM6DSV_Cmd( tBSP_PER_DataCmd* cmd);
 
 /* USER CODE END PFP */
 

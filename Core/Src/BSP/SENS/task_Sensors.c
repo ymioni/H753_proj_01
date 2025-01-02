@@ -105,22 +105,10 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	Main_Q	= xQueueCreate( 32, sizeof(tQ_Sensor_Cmd));
 
 	BSP_Sensors_InitSensors();
-
-	{
-		tBSP_PER_DataCmd	Cmd;
-
-		Cmd.Target		=	eBSP_PER_TARGET_SHT40A;
-		Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
-		Cmd.Precision	=	eBSP_PER_PRCSN_HIGH;
-		BSP_Sensors_Cmd( &Cmd, false);
-
-		Cmd.Target		=	eBSP_PER_TARGET_STTS22;
-		Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
-		BSP_Sensors_Cmd( &Cmd, false);
-	}
+	BSP_Sensors_Cb_Timer(NULL);	//	MUST call this BEFORE calling osTimerStart() (it's a timer's Cb function)
 
 	Main_Timer_idle	=	osTimerNew( BSP_Sensors_Cb_Timer, osTimerPeriodic, NULL, NULL);
-	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(1000));
+	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(1500));
 }
 
 /**
@@ -200,11 +188,11 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
   */
 static	void		BSP_Sensors_InitSensors( void)
 {
-	// SHT40
 	BSP_SHT40_Init(Main_Targets[eBSP_PER_TARGET_SHT40A].handle, BSP_Sensors_Cb_GetData);
 	BSP_STTS22_Init(Main_Targets[eBSP_PER_TARGET_STTS22].handle, BSP_Sensors_Cb_GetData);
 	BSP_LPS22D_Init(Main_Targets[eBSP_PER_TARGET_LPS22D].handle, BSP_Sensors_Cb_GetData);
 	BSP_LIS2MDL_Init(Main_Targets[eBSP_PER_TARGET_LIS2MDL].handle, BSP_Sensors_Cb_GetData);
+	BSP_LSM6DSV_Init(Main_Targets[eBSP_PER_TARGET_LSM6DSV].handle, BSP_Sensors_Cb_GetData);
 }
 
 /**
@@ -249,6 +237,7 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 		break;
 
 	case	eBSP_PER_TARGET_LSM6DSV:
+		BSP_LSM6DSV_Cmd(&Cmd);
 		break;
 
 	case	eBSP_PER_TARGET_LSM6DSO:
@@ -298,6 +287,12 @@ static	void		BSP_Sensors_Cb_Timer( void *argument)
 
 	{
 		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LIS2MDL,
+										.Function	=	eBSP_PER_FUNC_GET_SN};
+		BSP_Sensors_Cmd( &Cmd, false);
+	}
+
+	{
+		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSV,
 										.Function	=	eBSP_PER_FUNC_GET_SN};
 		BSP_Sensors_Cmd( &Cmd, false);
 	}
