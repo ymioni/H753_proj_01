@@ -25,6 +25,7 @@
 #include "..\PER\Peripherals.h"
 #include "..\Util\Util.h"
 #include "..\RespCodes.h"
+#include "task_Sensors.h"
 #include "..\I2C\I2C.h"
 #include "SHT40.h"
 /* USER CODE END Includes */
@@ -107,16 +108,16 @@ static	bool		BSP_SHT40_Transaction_SetData(tCmd_SHT40 Cmd);
   */
 void				BSP_SHT40_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc)
 {
-	tQ_Cmd	Cmd = {0};
-
 	Main_Handle = handle;
 	Main_CbFunc	= CbFunc;
 
 	Main_Q	= osMessageQueueNew(16, sizeof(tQ_Cmd), &Q_attributes);
 
-	Cmd.cmd	= CMD_SHT40_GET_SN;
-	Cmd.set	= false;
-	osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+	{
+		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_SHT40A,
+										.Function	=	eBSP_PER_FUNC_GET_SN};
+		BSP_Sensors_Cmd( &Cmd, false);
+	}
 }
 
 /**
