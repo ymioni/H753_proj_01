@@ -393,11 +393,10 @@ static	bool		BSP_STTS22_Transaction_SetData(tCmd_STTS22 Cmd)
 		break;
 	}
 
-	printf("STTS22  | Result: %d | SN: %lX Temp: %.2f RH(f): %.2f RH(i): %d\n",
+	printf("STTS22 | R: %d | SN: %lX T: %.2f RH: %d\n",
 				result,
 				Main_Per_DataResp.SerialNumber,
 				Main_Per_DataResp.Temperature,
-				Main_Per_DataResp.Humidity_f,
 				Main_Per_DataResp.Humidity_i);
 
 	return result;

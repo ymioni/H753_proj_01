@@ -120,7 +120,7 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	}
 
 	Main_Timer_idle	=	osTimerNew( BSP_Sensors_Cb_Timer, osTimerPeriodic, NULL, NULL);
-	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(3000));
+	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(1000));
 }
 
 /**
@@ -167,6 +167,19 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 		}
 		break;
 
+	// STTS22
+	case	eBSP_PER_TARGET_STTS22:
+		switch(Main_Q_Cmd.func)
+		{
+		case	eBSP_PER_FUNC_SET_CTRL:
+			Main_Q_Cmd.arg1	= Cmd->Control;
+			break;
+
+		default:
+			break;
+		}
+		break;
+
 	default:
 		break;
 	}
@@ -190,6 +203,7 @@ static	void		BSP_Sensors_InitSensors( void)
 	// SHT40
 	BSP_SHT40_Init(Main_Targets[eBSP_PER_TARGET_SHT40A].handle, BSP_Sensors_Cb_GetData);
 	BSP_STTS22_Init(Main_Targets[eBSP_PER_TARGET_STTS22].handle, BSP_Sensors_Cb_GetData);
+	BSP_LPS22D_Init(Main_Targets[eBSP_PER_TARGET_LPS22D].handle, BSP_Sensors_Cb_GetData);
 }
 
 /**
@@ -226,6 +240,7 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 		break;
 
 	case	eBSP_PER_TARGET_LPS22D:
+		BSP_LPS22D_Cmd(&Cmd);
 		break;
 
 	case	eBSP_PER_TARGET_LIS2MDL:
@@ -260,16 +275,24 @@ static	void		BSP_Sensors_Cb_GetData( tBSP_PER_DataResp* data)
   */
 static	void		BSP_Sensors_Cb_Timer( void *argument)
 {
-	tBSP_PER_DataCmd	Cmd;
+	{
+		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_SHT40A,
+										.Function	=	eBSP_PER_FUNC_TEMP_RH,
+										.Precision	=	eBSP_PER_PRCSN_HIGH};
+		BSP_Sensors_Cmd( &Cmd, false);
+	}
 
-	Cmd.Target		=	eBSP_PER_TARGET_SHT40A;
-	Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
-	Cmd.Precision	=	eBSP_PER_PRCSN_HIGH;
-	BSP_Sensors_Cmd( &Cmd, true);
+	{
+		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_STTS22,
+										.Function	=	eBSP_PER_FUNC_TEMP_RH};
+		BSP_Sensors_Cmd( &Cmd, false);
+	}
 
-	Cmd.Target		=	eBSP_PER_TARGET_STTS22;
-	Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
-	BSP_Sensors_Cmd( &Cmd, true);
+	{
+		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LPS22D,
+										.Function	=	eBSP_PER_FUNC_GET_SN};
+		BSP_Sensors_Cmd( &Cmd, false);
+	}
 }
 
 /* USER CODE END 4 */
