@@ -204,6 +204,7 @@ static	void		BSP_Sensors_InitSensors( void)
 	BSP_SHT40_Init(Main_Targets[eBSP_PER_TARGET_SHT40A].handle, BSP_Sensors_Cb_GetData);
 	BSP_STTS22_Init(Main_Targets[eBSP_PER_TARGET_STTS22].handle, BSP_Sensors_Cb_GetData);
 	BSP_LPS22D_Init(Main_Targets[eBSP_PER_TARGET_LPS22D].handle, BSP_Sensors_Cb_GetData);
+	BSP_LIS2MDL_Init(Main_Targets[eBSP_PER_TARGET_LIS2MDL].handle, BSP_Sensors_Cb_GetData);
 }
 
 /**
@@ -244,6 +245,7 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 		break;
 
 	case	eBSP_PER_TARGET_LIS2MDL:
+		BSP_LIS2MDL_Cmd(&Cmd);
 		break;
 
 	case	eBSP_PER_TARGET_LSM6DSV:
@@ -290,6 +292,12 @@ static	void		BSP_Sensors_Cb_Timer( void *argument)
 
 	{
 		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LPS22D,
+										.Function	=	eBSP_PER_FUNC_GET_SN};
+		BSP_Sensors_Cmd( &Cmd, false);
+	}
+
+	{
+		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LIS2MDL,
 										.Function	=	eBSP_PER_FUNC_GET_SN};
 		BSP_Sensors_Cmd( &Cmd, false);
 	}

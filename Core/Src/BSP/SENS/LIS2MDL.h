@@ -54,9 +54,9 @@ typedef	void(*tCb_GetData_LIS2MDL)(tBSP_PER_DataResp *Data);
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-bool			BSP_LIS2MDL_Init( I2C_HandleTypeDef *handle, tCb_GetData_LIS2MDL	CbFunc);
-void 			BSP_LIS2MDL_MainLoop( void);
-bool			BSP_LIS2MDL_Cmd( tBSP_PER_DataCmd	*cmd);
+void				BSP_LIS2MDL_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc);
+void 				task_LIS2MDL( void *arguments);
+bool				BSP_LIS2MDL_Cmd( tBSP_PER_DataCmd* cmd);
 
 /* USER CODE END PFP */
 

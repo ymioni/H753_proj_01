@@ -33,7 +33,7 @@
 #include ".\Sens\SHT40.h"
 #include ".\Sens\STTS22.h"
 #include ".\Sens\LPS22D.h"
-//#include ".\Sens\LIS2MDL.h"
+#include ".\Sens\LIS2MDL.h"
 //#include ".\Sens\LSM6DSV.h"
 //#include ".\Sens\LSM6DSO.h"
 //#include ".\Sens\LIS2DUX.h"
@@ -97,6 +97,13 @@ const osThreadAttr_t task_STTS22_attributes = {
 osThreadId_t task_LPS22DHandle;
 const osThreadAttr_t task_LPS22D_attributes = {
   .name = "task_LPS22D",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
+osThreadId_t task_LIS2MDLHandle;
+const osThreadAttr_t task_LIS2MDL_attributes = {
+  .name = "task_LIS2MDL",
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
@@ -244,11 +251,12 @@ int main(void)
   defaultTaskHandle 	= osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
+  task_I2CHandle		= osThreadNew(task_I2C, NULL, &task_I2C_attributes);
   task_SensorsHandle	= osThreadNew(task_Sensors, NULL, &task_Sensors_attributes);
   task_SHT40Handle 		= osThreadNew(task_SHT40, NULL, &task_SHT40_attributes);
   task_STTS22Handle		= osThreadNew(task_STTS22, NULL, &task_STTS22_attributes);
   task_LPS22DHandle		= osThreadNew(task_LPS22D, NULL, &task_LPS22D_attributes);
-  task_I2CHandle		= osThreadNew(task_I2C, NULL, &task_I2C_attributes);
+  task_LIS2MDLHandle	= osThreadNew(task_LIS2MDL, NULL, &task_LPS22D_attributes);
 
   /* USER CODE END RTOS_THREADS */
 
