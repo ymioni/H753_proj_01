@@ -298,9 +298,7 @@ static	void		BSP_SHT40_Transaction_Tx(bool Rx, tCmd_SHT40 Cmd)
 	BSP_SHT40_Session();
 
 	if( Rx)
-	{
 		BSP_SHT40_Transaction_SetData(Cmd);
-	}
 }
 
 /**

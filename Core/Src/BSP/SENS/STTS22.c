@@ -21,10 +21,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "..\I2C\I2C.h"
+#include "cmsis_os.h"
 #include "..\PER\Peripherals.h"
 #include "..\Util\Util.h"
 #include "..\RespCodes.h"
+#include "..\I2C\I2C.h"
 #include "STTS22.h"
 /* USER CODE END Includes */
 
@@ -32,10 +33,9 @@
 /* USER CODE BEGIN PTD */
 typedef	struct
 {
-	tCmd_STTS22		Cmd;
-	bool			Set;
-}tCmdQueue;
-
+	tCmd_STTS22		cmd;
+	bool			set;
+}tQ_Cmd;
 
 /* USER CODE END PTD */
 
@@ -72,51 +72,34 @@ struct __PACKED
 	uint8_t		Status;
 }Data_STTS22_Status;
 
-static	tCb_GetData_STTS22		Main_Cb_GetData_STTS22;
-static  tBSP_PER_DataCmd		Main_Per_DataCmd	= {0};
-static	tBSP_PER_DataResp		Main_Per_DataResp	= {0};
+static	osMessageQueueId_t 			Main_Q;
+static	const osMessageQueueAttr_t	Q_attributes		= {	.name = "Q_STTS22"};
+static	I2C_HandleTypeDef*			Main_Handle 		= NULL;
+static	tCb_Sensor_GetData			Main_CbFunc			= NULL;
+static	uint8_t						Main_Setting_Ctrl	= 0x3C;
+static	uint16_t 					Main_RxVal16b		= 0;
 
-static 	bool					Main_Active			= false;
-static	uint8_t					Main_State			= 0;
-static	uint32_t				Main_Target			= 0;
+static	uint16_t					Main_Timeout		= 1000;
+static	uint16_t					Main_Delay 			= 50;
 
-static	uint8_t					Main_Setting_Ctrl	= 0x3C;
-
-static	I2C_HandleTypeDef*		Main_Handle			= NULL;
-static	uint16_t				Main_Timer			= 0;
-static	uint16_t				Main_Timeout		= 1000;
-static	uint16_t				Main_Delay 			= 50;
-static	tCmd_STTS22				Main_Cmd			= 0;
-static  bool					Main_Set			= false;
-static  bool					Main_Wait4Rx		= false;
-
-static	uint8_t 				Main_TxBuf[2]		= {0};
-static	uint8_t 				Main_TxLen			= 0;
-static	uint8_t *				Main_RxBuf			= NULL;
-static	uint8_t 				Main_RxLen			= 0;
-static	uint16_t 				Main_RxVal16b		= 0;
-
-#define MAX_Q_LEN				10
-static	tCmdQueue				Main_Q[MAX_Q_LEN]	= {0};
-static	uint8_t					Main_Q_Idx_W		= 0;
-static	uint8_t					Main_Q_Idx_R		= 0;
-static	uint8_t					Main_Q_Idx_Cnt		= 0;
+static	uint8_t 					Main_TxBuf[2]		= {0};
+static	uint8_t 					Main_TxLen			= 0;
+static	uint8_t *					Main_RxBuf			= NULL;
+static	uint8_t 					Main_RxLen			= 0;
+static	tBSP_I2C_Session			Main_Session		= {0};
+static	tBSP_PER_DataResp			Main_Per_DataResp	= {0};
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-static	void			BSP_STTS22_SetCtrl(uint8_t	Value);
-static	uint8_t			BSP_STTS22_GetCtrl(void);
-static	bool			BSP_STTS22_Enqueue( tCmd_STTS22 Cmd, bool Set);
-static	tCmdQueue		BSP_STTS22_Dequeue( void);
-static	bool			BSP_STTS22_Transaction( tCmdQueue Rec);
-static	bool			BSP_STTS22_Transaction_TxRx(void);
-static	bool			BSP_STTS22_Transaction_Tx(void);
-static	bool			BSP_STTS22_Transaction_Rx(void);
-static	bool			BSP_STTS22_Transaction_SetData(tCmd_STTS22 Cmd);
-static	void			BSP_STTS22_Cb_TxDone(bool result);
-static	void			BSP_STTS22_Cb_RxDone(bool result);
+static	bool		BSP_STTS22_Transaction(tQ_Cmd Rec);
+static	void		BSP_STTS22_Transaction_Tx(bool Rx, tCmd_STTS22 Cmd);
+static	void		BSP_STTS22_Transaction_Rx(void);
+static	void		BSP_STTS22_Session(void);
+static	bool		BSP_STTS22_Transaction_SetData(tCmd_STTS22 Cmd);
+static	void		BSP_STTS22_SetCtrl(uint8_t	Value);
+static	uint8_t		BSP_STTS22_GetCtrl(void);
 
 /* USER CODE END PFP */
 
@@ -128,132 +111,94 @@ static	void			BSP_STTS22_Cb_RxDone(bool result);
   * @brief
   * @retval
   */
-bool			BSP_STTS22_Init( I2C_HandleTypeDef *handle, tCb_GetData_STTS22	CbFunc)
+void				BSP_STTS22_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc)
 {
-	if( BSP_RespCodes_Assert_BSP((handle == NULL), BSP_ERROR_HANDLE_ERR))				return false;
-	if( BSP_RespCodes_Assert_BSP((CbFunc == NULL), BSP_ERROR_PARAM_NULL))				return false;
+	tQ_Cmd	Cmd = {0};
 
-	Main_Handle					= handle;
-	Main_Cb_GetData_STTS22		= CbFunc;
+	Main_Handle = handle;
+	Main_CbFunc	= CbFunc;
 
-	Main_Per_DataResp.Address	= (I2C_DEVICE_ADDRESS_STTS22 >> 1);
-
-	Main_Active = 	true;
-	Main_Target	=	0;
-	Main_State	=	0;
-
-	Main_Per_DataCmd.handle		=	handle;
+	Main_Q	= osMessageQueueNew(16, sizeof(tQ_Cmd), &Q_attributes);
 
 	// MANDATORY! Don't delete this block
-	Main_Per_DataCmd.Function	=	eBSP_PER_FUNC_SET_CTRL;
-	Main_Per_DataCmd.Control	=	Main_Setting_Ctrl;
-	BSP_STTS22_Cmd( &Main_Per_DataCmd);
+	Cmd.cmd	= CMD_STTS22_CTRL;
+	Cmd.set	= true;
+	BSP_STTS22_SetCtrl(Main_Setting_Ctrl);
+	osMessageQueuePut(Main_Q, &Cmd, 0, 0);
 	// MANDATORY! (end block)
 
-	// Optional
-	Main_Per_DataCmd.Function	=	eBSP_PER_FUNC_GET_SN;
-	BSP_STTS22_Cmd( &Main_Per_DataCmd);
-
-	return true;
+	Cmd.cmd	= CMD_STTS22_GET_SN;
+	Cmd.set	= false;
+	osMessageQueuePut(Main_Q, &Cmd, 0, 0);
 }
 
 /**
   * @brief
   * @retval
   */
-void 			BSP_STTS22_MainLoop( void)
+void 				task_STTS22( void *arguments)
 {
-	if( Main_Active == false)			return;
-	if( HAL_GetTick() < Main_Target)	return;
+	tQ_Cmd Cmd;
 
-	switch(Main_State)
+	while (1)
 	{
-	case	0:
-		if( BSP_I2C_IsBusy())	break;
+		osDelay(1); // Consider whether this is necessary.
 
-		tCmdQueue Rec = BSP_STTS22_Dequeue();
-		if( Rec.Cmd != 0)
-		{
-			BSP_STTS22_Transaction(Rec);
-			Main_State ++;
-		}
-		break;
+		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
 
-	case	1:
-		break;
-
-	case	2:
-		Main_Timer	=	Main_Delay;
-		Main_State ++;
-		break;
-
-	case	3:
-		if( Main_Wait4Rx == true)
-		{
-			BSP_STTS22_Transaction_Rx();
-			Main_Timer	=	Main_Delay;
-		}
-		Main_State 	=	0;
-		break;
-
-	default:
-		Main_Timer	=	0;
-		Main_State	=	0;
-		break;
+		BSP_STTS22_Transaction(Cmd);
 	}
-
-	Main_Target = HAL_GetTick() + Main_Timer;
 }
 
-/**
-  * @brief
-  * @retval
-  */
-bool			BSP_STTS22_Cmd( tBSP_PER_DataCmd	*cmd)
+bool				BSP_STTS22_Cmd( tBSP_PER_DataCmd	*cmd)
 {
+	tQ_Cmd	Cmd = {0};
 	bool	result = true;
 
-	if( BSP_RespCodes_Assert_BSP((cmd == NULL), BSP_ERROR_PARAM_NULL))				return false;
-	if( BSP_RespCodes_Assert_BSP((cmd->handle == NULL), BSP_ERROR_HANDLE_ERR))		return false;
+	if( BSP_RespCodes_Assert_BSP((cmd == NULL), BSP_ERROR_PARAM_NULL))							return false;
 
-	Main_Per_DataCmd 	= *cmd;
-	Main_Handle			= cmd->handle;
+	Cmd.cmd	= 0;
+	Cmd.set	= false;
 
 	switch(cmd->Function)
 	{
 	case	eBSP_PER_FUNC_TEMP:
 	case	eBSP_PER_FUNC_TEMP_RH:
 		Main_RxVal16b	=	0;
-		result = BSP_STTS22_Enqueue(CMD_STTS22_TEMP_L, BSP_GET);
-		result = BSP_STTS22_Enqueue(CMD_STTS22_TEMP_H, BSP_GET);
+		Cmd.cmd	= CMD_STTS22_TEMP_L;
+		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		Cmd.cmd	= CMD_STTS22_TEMP_H;
 		break;
 
 	case	eBSP_PER_FUNC_RH:
-		result = false;
 		break;
 
 	case	eBSP_PER_FUNC_GET_SN:
-		result = BSP_STTS22_Enqueue(CMD_STTS22_GET_SN, BSP_GET);
+		Cmd.cmd	= CMD_STTS22_GET_SN;
 		break;
 
 	case	eBSP_PER_FUNC_GET_CTRL:
-		result = BSP_STTS22_Enqueue(CMD_STTS22_CTRL, BSP_GET);
+		Cmd.cmd	= CMD_STTS22_CTRL;
 		break;
 
 	case	eBSP_PER_FUNC_SET_CTRL:
-		result = BSP_STTS22_Enqueue(CMD_STTS22_CTRL, BSP_SET);
-		if( result == true)
-			BSP_STTS22_SetCtrl(cmd->Control);
+		Cmd.cmd	= CMD_STTS22_CTRL;
+		Cmd.set	= true;
+		BSP_STTS22_SetCtrl(cmd->Control);
 		break;
 
 	case	eBSP_PER_FUNC_GET_STATUS:
-		result = BSP_STTS22_Enqueue(CMD_STTS22_STATUS, BSP_GET);
+		Cmd.cmd	= CMD_STTS22_STATUS;
 		break;
 
 	default:
-		return false;
 		break;
 	}
+
+	if( Cmd.cmd == 0)
+		result = false;
+	else
+		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
 
 	return	result;
 }
@@ -262,82 +207,26 @@ bool			BSP_STTS22_Cmd( tBSP_PER_DataCmd	*cmd)
   * @brief
   * @retval
   */
-static	void			BSP_STTS22_SetCtrl(uint8_t	Value)
-{
-	Main_Setting_Ctrl	=	Value;
-}
-
-/**
-  * @brief
-  * @retval
-  */
-static	uint8_t			BSP_STTS22_GetCtrl(void)
-{
-	return	Main_Setting_Ctrl;
-}
-
-/**
-  * @brief
-  * @retval
-  */
-static	bool			BSP_STTS22_Enqueue( tCmd_STTS22 Cmd, bool Set)
-{
-	tCmdQueue Rec = {.Cmd = Cmd, .Set = Set};
-
-	if( Main_Q_Idx_Cnt >= MAX_Q_LEN)
-		return false;
-
-	if( Main_Q_Idx_W >= MAX_Q_LEN)	Main_Q_Idx_W	=	0;
-	Main_Q[Main_Q_Idx_W ++]	=	Rec;
-	if( Main_Q_Idx_W >= MAX_Q_LEN)	Main_Q_Idx_W	=	0;
-	Main_Q_Idx_Cnt	++;
-
-	return true;
-}
-
-/**
-  * @brief
-  * @retval
-  */
-static	tCmdQueue		BSP_STTS22_Dequeue( void)
-{
-	tCmdQueue	Rec = {0};
-
-	if(Main_Q_Idx_Cnt > 0)
-	{
-		if( Main_Q_Idx_R >= MAX_Q_LEN)	Main_Q_Idx_R	=	0;
-		Rec = Main_Q[Main_Q_Idx_R ++];
-		if( Main_Q_Idx_W >= MAX_Q_LEN)	Main_Q_Idx_R	=	0;
-		Main_Q_Idx_Cnt --;
-	}
-
-	return Rec;
-}
-
-/**
-  * @brief
-  * @retval
-  */
-static	bool	BSP_STTS22_Transaction(tCmdQueue Rec)
+static	bool		BSP_STTS22_Transaction(tQ_Cmd Rec)
 {
 	bool	result = true;
 	uint8_t	idx = 0;
 
-	switch(Rec.Cmd)
+	switch(Rec.cmd)
 	{
 	case	CMD_STTS22_GET_SN:
-		Main_TxBuf[idx ++]	=	Rec.Cmd;
+		Main_TxBuf[idx ++]	=	Rec.cmd;
 		Main_TxLen = idx;
 		Main_RxBuf	= (uint8_t *)&Data_STTS22_SN;
 		Main_RxLen	= sizeof(Data_STTS22_SN);
 		break;
 
 	case	CMD_STTS22_TEMP_H_LIMIT:
-		Main_TxBuf[idx ++]	=	Rec.Cmd;
+		Main_TxBuf[idx ++]	=	Rec.cmd;
 //		if( Rec.Set == BSP_SET)
 //			Main_TxBuf[idx ++]	=	BSP_STTS22_GetTemp_H_Limit();
 		Main_TxLen = idx;
-		if( Rec.Set == BSP_GET)
+		if( Rec.set == BSP_GET)
 		{
 			Main_RxBuf	= (uint8_t *)&Data_STTS22_Temp;
 			Main_RxLen	= sizeof(Data_STTS22_Temp);
@@ -345,11 +234,11 @@ static	bool	BSP_STTS22_Transaction(tCmdQueue Rec)
 		break;
 
 	case	CMD_STTS22_TEMP_L_LIMIT:
-		Main_TxBuf[idx ++]	=	Rec.Cmd;
+		Main_TxBuf[idx ++]	=	Rec.cmd;
 //		if( Rec.Set == BSP_SET)
 //			Main_TxBuf[idx ++]	=	BSP_STTS22_GetTemp_H_Limit();
 		Main_TxLen = idx;
-		if( Rec.Set == BSP_GET)
+		if( Rec.set == BSP_GET)
 		{
 			Main_RxBuf	= (uint8_t *)&Data_STTS22_Temp;
 			Main_RxLen	= sizeof(Data_STTS22_Temp);
@@ -357,11 +246,11 @@ static	bool	BSP_STTS22_Transaction(tCmdQueue Rec)
 		break;
 
 	case	CMD_STTS22_CTRL:
-		Main_TxBuf[idx ++]	=	Rec.Cmd;
-		if( Rec.Set == BSP_SET)
+		Main_TxBuf[idx ++]	=	Rec.cmd;
+		if( Rec.set == BSP_SET)
 			Main_TxBuf[idx ++]	=	BSP_STTS22_GetCtrl();
 		Main_TxLen = idx;
-		if( Rec.Set == BSP_GET)
+		if( Rec.set == BSP_GET)
 		{
 			Main_RxBuf	= (uint8_t *)&Data_STTS22_Control;
 			Main_RxLen	= sizeof(Data_STTS22_Control);
@@ -369,21 +258,21 @@ static	bool	BSP_STTS22_Transaction(tCmdQueue Rec)
 		break;
 
 	case	CMD_STTS22_STATUS:
-		Main_TxBuf[idx ++]	=	Rec.Cmd;
+		Main_TxBuf[idx ++]	=	Rec.cmd;
 		Main_TxLen = idx;
 		Main_RxBuf	= (uint8_t *)&Data_STTS22_Status;
 		Main_RxLen	= sizeof(Data_STTS22_Status);
 		break;
 
 	case	CMD_STTS22_TEMP_L:
-		Main_TxBuf[idx ++]	=	Rec.Cmd;
+		Main_TxBuf[idx ++]	=	Rec.cmd;
 		Main_TxLen = idx;
 		Main_RxBuf	= (uint8_t *)&Data_STTS22_Temp;
 		Main_RxLen	= sizeof(Data_STTS22_Temp);
 		break;
 
 	case	CMD_STTS22_TEMP_H:
-		Main_TxBuf[idx ++]	=	Rec.Cmd;
+		Main_TxBuf[idx ++]	=	Rec.cmd;
 		Main_TxLen = idx;
 		Main_RxBuf	= (uint8_t *)&Data_STTS22_Temp;
 		Main_RxLen	= sizeof(Data_STTS22_Temp);
@@ -396,15 +285,13 @@ static	bool	BSP_STTS22_Transaction(tCmdQueue Rec)
 
 	if( result == true)
 	{
-		Main_Cmd = Rec.Cmd;
-		Main_Set = Rec.Set;
-		if( Main_Set == BSP_GET)
+		if( Rec.set == BSP_GET)
 		{
-			result = BSP_STTS22_Transaction_TxRx();
+			BSP_STTS22_Transaction_Tx(true, Rec.cmd);
 		}
 		else
 		{
-			result = BSP_STTS22_Transaction_Tx();
+			BSP_STTS22_Transaction_Tx(false, Rec.cmd);
 		}
 	}
 
@@ -415,88 +302,56 @@ static	bool	BSP_STTS22_Transaction(tCmdQueue Rec)
   * @brief
   * @retval
   */
-static	bool			BSP_STTS22_Transaction_TxRx(void)
+static	void		BSP_STTS22_Transaction_Tx(bool Rx, tCmd_STTS22 Cmd)
 {
-	Main_Wait4Rx = true;
-	return( BSP_STTS22_Transaction_Tx());
+	Main_Session.i2cHandle		= Main_Handle;
+	Main_Session.taskHandle		= xTaskGetCurrentTaskHandle();
+	Main_Session.Address		= I2C_DEVICE_ADDRESS_STTS22;
+	Main_Session.Device			= eBSP_PER_TARGET_STTS22;
+	Main_Session.TxBuf			= Main_TxBuf;
+	Main_Session.TxLen			= Main_TxLen;
+	Main_Session.RxBuf			= NULL;
+	Main_Session.RxLen			= 0;
+	Main_Session.Timeout		= Main_Timeout;
+	Main_Session.DelayAfterTx	= Main_Delay;
+	Main_Session.DelayAfterRx	= 0;
+
+	if( Rx)
+		BSP_STTS22_Transaction_Rx();
+
+	BSP_STTS22_Session();
+
+	if( Rx)
+		BSP_STTS22_Transaction_SetData(Cmd);
 }
 
 /**
   * @brief
   * @retval
   */
-static	bool			BSP_STTS22_Transaction_Tx(void)
+static	void		BSP_STTS22_Transaction_Rx(void)
 {
-	tBSP_I2C_TxRx	BSP_I2C_TxRx = {	.handle		= Main_Handle,
-										.Address	= I2C_DEVICE_ADDRESS_STTS22,
-										.Device		= eBSP_PER_TARGET_STTS22,
-										.pData		= Main_TxBuf,
-										.Size		= Main_TxLen,
-										.Timeout	= (Main_Set == BSP_SET) ? 0 : Main_Timeout,
-										.Cb_TxDone	= BSP_STTS22_Cb_TxDone};
-	while(BSP_I2C_IsBusy());
-	return(BSP_I2C_Transmit_IT(&BSP_I2C_TxRx));
+	Main_Session.RxBuf			= Main_RxBuf;
+	Main_Session.RxLen			= Main_RxLen;
+	Main_Session.DelayAfterRx	= Main_Delay;
 }
 
 /**
   * @brief
   * @retval
   */
-static	bool			BSP_STTS22_Transaction_Rx(void)
+static	void		BSP_STTS22_Session(void)
 {
-	bool	result;
+	BSP_I2C_Cmd(Main_Session);
 
-	tBSP_I2C_TxRx	BSP_I2C_TxRx = {	.handle		= Main_Handle,
-										.Address	= I2C_DEVICE_ADDRESS_STTS22,
-										.Device		= eBSP_PER_TARGET_STTS22,
-										.pData		= Main_RxBuf,
-										.Size		= Main_RxLen,
-										.Timeout	= Main_Timeout,
-										.Cb_RxDone	= BSP_STTS22_Cb_RxDone};
-	result =	BSP_I2C_Receive_IT(&BSP_I2C_TxRx);
-	if( result == false)
-		Main_Wait4Rx = false;
-
-	return( result);
+	ulTaskNotifyTake(pdTRUE, 1000);
 }
 
 /**
   * @brief
   * @retval
   */
-static	void			BSP_STTS22_Cb_TxDone(bool result)
-{
-	if( result == false)
-	{
-		Main_Wait4Rx = false;
-		return; // Timeout
-	}
-
-	Main_State = 2;
-}
-
-/**
-  * @brief
-  * @retval
-  */
-static	void			BSP_STTS22_Cb_RxDone(bool result)
-{
-	Main_Wait4Rx = false;
-	if( result == false)
-		return; // Timeout
-
-	if( BSP_STTS22_Transaction_SetData(Main_Cmd) == true)
-	{
-		if(Main_Cb_GetData_STTS22 != NULL)
-			Main_Cb_GetData_STTS22(&Main_Per_DataResp);
-	}
-}
-
-/**
-  * @brief
-  * @retval
-  */
-static	bool			BSP_STTS22_Transaction_SetData(tCmd_STTS22 Cmd)
+static	bool		BSP_STTS22_Transaction_SetData(tCmd_STTS22 Cmd)
 {
 	bool result = true;
 
@@ -523,7 +378,7 @@ static	bool			BSP_STTS22_Transaction_SetData(tCmd_STTS22 Cmd)
 	case	CMD_STTS22_TEMP_L:
 		Main_RxVal16b	=	Main_RxBuf[0];
 		result = false; // wait for CMD_STTS22_TEMP_H and prevent calling Main_Cb_GetData_STTS22()
-		break;
+		return false; // partial answer. wait for CMD_STTS22_TEMP_H
 
 	case	CMD_STTS22_TEMP_H:
 		Main_RxVal16b	+=	(Main_RxBuf[0] * 0x100);
@@ -535,7 +390,31 @@ static	bool			BSP_STTS22_Transaction_SetData(tCmd_STTS22 Cmd)
 		break;
 	}
 
+	printf("STTS22  | Result: %d | SN: %lX Temp: %.2f RH(f): %.2f RH(i): %d\n",
+				result,
+				Main_Per_DataResp.SerialNumber,
+				Main_Per_DataResp.Temperature,
+				Main_Per_DataResp.Humidity_f,
+				Main_Per_DataResp.Humidity_i);
+
 	return result;
 }
 
+/**
+  * @brief
+  * @retval
+  */
+static	void		BSP_STTS22_SetCtrl(uint8_t	Value)
+{
+	Main_Setting_Ctrl	=	Value;
+}
+
+/**
+  * @brief
+  * @retval
+  */
+static	uint8_t		BSP_STTS22_GetCtrl(void)
+{
+	return	Main_Setting_Ctrl;
+}
 /* USER CODE END 4 */

@@ -106,11 +106,18 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 
 	BSP_Sensors_InitSensors();
 
-	tBSP_PER_DataCmd	Cmd;
-	Cmd.Target		=	eBSP_PER_TARGET_SHT40A;
-	Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
-	Cmd.Precision	=	eBSP_PER_PRCSN_HIGH;
-	BSP_Sensors_Cmd( &Cmd, false);
+	{
+		tBSP_PER_DataCmd	Cmd;
+
+		Cmd.Target		=	eBSP_PER_TARGET_SHT40A;
+		Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
+		Cmd.Precision	=	eBSP_PER_PRCSN_HIGH;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+		Cmd.Target		=	eBSP_PER_TARGET_STTS22;
+		Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
+		BSP_Sensors_Cmd( &Cmd, false);
+	}
 
 	Main_Timer_idle	=	osTimerNew( BSP_Sensors_Cb_Timer, osTimerPeriodic, NULL, NULL);
 	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(3000));
@@ -182,6 +189,7 @@ static	void		BSP_Sensors_InitSensors( void)
 {
 	// SHT40
 	BSP_SHT40_Init(Main_Targets[eBSP_PER_TARGET_SHT40A].handle, BSP_Sensors_Cb_GetData);
+	BSP_STTS22_Init(Main_Targets[eBSP_PER_TARGET_STTS22].handle, BSP_Sensors_Cb_GetData);
 }
 
 /**
@@ -197,7 +205,6 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 
 	switch(cmd->target)
 	{
-	// SHT40
 	case	eBSP_PER_TARGET_SHT40A:
 		switch(cmd->func)
 		{
@@ -215,6 +222,7 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 		break;
 
 	case	eBSP_PER_TARGET_STTS22:
+		BSP_STTS22_Cmd(&Cmd);
 		break;
 
 	case	eBSP_PER_TARGET_LPS22D:
@@ -253,9 +261,14 @@ static	void		BSP_Sensors_Cb_GetData( tBSP_PER_DataResp* data)
 static	void		BSP_Sensors_Cb_Timer( void *argument)
 {
 	tBSP_PER_DataCmd	Cmd;
+
 	Cmd.Target		=	eBSP_PER_TARGET_SHT40A;
 	Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
 	Cmd.Precision	=	eBSP_PER_PRCSN_HIGH;
+	BSP_Sensors_Cmd( &Cmd, true);
+
+	Cmd.Target		=	eBSP_PER_TARGET_STTS22;
+	Cmd.Function	=	eBSP_PER_FUNC_TEMP_RH;
 	BSP_Sensors_Cmd( &Cmd, true);
 }
 

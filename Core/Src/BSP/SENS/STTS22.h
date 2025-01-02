@@ -60,9 +60,9 @@ typedef	void(*tCb_GetData_STTS22)(tBSP_PER_DataResp *Data);
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-bool			BSP_STTS22_Init( I2C_HandleTypeDef *handle, tCb_GetData_STTS22	CbFunc);
-void 			BSP_STTS22_MainLoop( void);
-bool			BSP_STTS22_Cmd( tBSP_PER_DataCmd	*cmd);
+void				BSP_STTS22_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc);
+void 				task_STTS22( void *arguments);
+bool				BSP_STTS22_Cmd( tBSP_PER_DataCmd* cmd);
 
 /* USER CODE END PFP */
 
