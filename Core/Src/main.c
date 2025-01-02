@@ -70,14 +70,14 @@ osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityLow,
 };
 
 osThreadId_t task_SensorsHandle;
 const osThreadAttr_t task_Sensors_attributes = {
   .name = "task_Sensors",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityBelowNormal,
 };
 
 osThreadId_t task_SHT40Handle;
@@ -133,7 +133,7 @@ osThreadId_t task_I2CHandle;
 const osThreadAttr_t task_I2C_attributes = {
   .name = "task_I2C",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityAboveNormal,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 
 /* USER CODE BEGIN PV */
