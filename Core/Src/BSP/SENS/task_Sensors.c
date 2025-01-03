@@ -227,6 +227,16 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 		break;
 
 	case	eBSP_PER_TARGET_STTS22:
+		switch(cmd->func)
+		{
+		case	eBSP_PER_FUNC_SET_CTRL:
+			Cmd.Control	= cmd->arg1;
+			break;
+
+		default:
+			break;
+		}
+
 		BSP_STTS22_Cmd(&Cmd);
 		break;
 
