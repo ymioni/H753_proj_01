@@ -80,8 +80,8 @@ static	tCb_Sensor_GetData			Main_CbFunc			= NULL;
 static	uint8_t						Main_Setting_Ctrl	= 0x3C;
 static	uint16_t 					Main_RxVal16b		= 0;
 
-static	uint16_t					Main_Timeout		= 1000;
-static	uint16_t					Main_Delay 			= 50;
+static	uint16_t					Main_Timeout		= 50;
+static	uint16_t					Main_Delay 			= 20;
 
 static	uint8_t 					Main_TxBuf[2]		= {0};
 static	uint8_t 					Main_TxLen			= 0;

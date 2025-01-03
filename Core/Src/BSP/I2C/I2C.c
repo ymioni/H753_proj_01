@@ -122,7 +122,7 @@ static	void		BSP_I2C_Session( tBSP_I2C_Session Cmd)
 	Main_taskHandle	= xTaskGetCurrentTaskHandle();
 
 	HAL_result = HAL_I2C_Master_Transmit_IT(Cmd.i2cHandle, Cmd.Address, Cmd.TxBuf, Cmd.TxLen);
-	ulTaskNotifyTake(pdTRUE, 1000);
+	ulTaskNotifyTake(pdTRUE, 50);
 	vTaskDelay(Cmd.DelayAfterTx);
 
 	if( Main_RxLen == 0)
@@ -132,7 +132,7 @@ static	void		BSP_I2C_Session( tBSP_I2C_Session Cmd)
 	else
 	{
 		HAL_result = HAL_I2C_Master_Receive_IT(Cmd.i2cHandle, Cmd.Address, Cmd.RxBuf, Cmd.RxLen);
-		ulTaskNotifyTake(pdTRUE, 1000);
+		ulTaskNotifyTake(pdTRUE, 50);
 		vTaskDelay(Cmd.DelayAfterRx);
 		xTaskNotifyGive(Cmd.taskHandle);
 	}

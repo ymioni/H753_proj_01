@@ -69,8 +69,8 @@ static	const osMessageQueueAttr_t	Q_attributes		= {	.name = "Q_LSM6DSV"};
 static	I2C_HandleTypeDef*			Main_Handle 		= NULL;
 static	tCb_Sensor_GetData			Main_CbFunc			= NULL;
 
-static	uint16_t					Main_Timeout		= 1000;
-static	uint16_t					Main_Delay 			= 50;
+static	uint16_t					Main_Timeout		= 50;
+static	uint16_t					Main_Delay 			= 20;
 
 static	uint8_t 					Main_TxBuf[2]		= {0};
 static	uint8_t 					Main_TxLen			= 0;
