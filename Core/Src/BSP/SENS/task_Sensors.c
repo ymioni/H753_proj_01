@@ -108,7 +108,7 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	BSP_Sensors_Cb_Timer(NULL);	//	MUST call this BEFORE calling osTimerStart() (it's a timer's Cb function)
 
 	Main_Timer_idle	=	osTimerNew( BSP_Sensors_Cb_Timer, osTimerPeriodic, NULL, NULL);
-	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(100));
+	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(3000));
 }
 
 /**

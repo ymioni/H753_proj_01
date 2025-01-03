@@ -55,7 +55,7 @@ typedef	struct
 /* USER CODE BEGIN PV */
 struct __PACKED
 {
-	uint8_t		Temperature;
+	uint16_t	Temperature;
 }Data_STTS22_Temp;
 
 struct __PACKED
@@ -78,7 +78,6 @@ static	const osMessageQueueAttr_t	Q_attributes		= {	.name = "Q_STTS22"};
 static	I2C_HandleTypeDef*			Main_Handle 		= NULL;
 static	tCb_Sensor_GetData			Main_CbFunc			= NULL;
 static	uint8_t						Main_Setting_Ctrl	= 0x3C;
-static	uint16_t 					Main_RxVal16b		= 0;
 
 static	uint16_t					Main_Timeout		= 50;
 static	uint16_t					Main_Delay 			= 20;
@@ -167,10 +166,7 @@ bool				BSP_STTS22_Cmd( tBSP_PER_DataCmd	*cmd)
 	{
 	case	eBSP_PER_FUNC_TEMP:
 	case	eBSP_PER_FUNC_TEMP_RH:
-		Main_RxVal16b	=	0;
-		Cmd.cmd	= CMD_STTS22_TEMP_L;
-		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
-		Cmd.cmd	= CMD_STTS22_TEMP_H;
+		Cmd.cmd	= CMD_STTS22_TEMP_L; // reads also CMD_STTS22_TEMP_H in a single command
 		break;
 
 	case	eBSP_PER_FUNC_RH:
@@ -227,19 +223,7 @@ static	bool		BSP_STTS22_Transaction(tQ_Cmd Rec)
 	case	CMD_STTS22_TEMP_H_LIMIT:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
 //		if( Rec.Set == BSP_SET)
-//			Main_TxBuf[idx ++]	=	BSP_STTS22_GetTemp_H_Limit();
-		Main_TxLen = idx;
-		if( Rec.set == BSP_GET)
-		{
-			Main_RxBuf	= (uint8_t *)&Data_STTS22_Temp;
-			Main_RxLen	= sizeof(Data_STTS22_Temp);
-		}
-		break;
-
-	case	CMD_STTS22_TEMP_L_LIMIT:
-		Main_TxBuf[idx ++]	=	Rec.cmd;
-//		if( Rec.Set == BSP_SET)
-//			Main_TxBuf[idx ++]	=	BSP_STTS22_GetTemp_H_Limit();
+//			Main_TxBuf[idx ++]	=	BSP_STTS22_GetTemp_H_Limit(); // ensure the function returns uint16_t
 		Main_TxLen = idx;
 		if( Rec.set == BSP_GET)
 		{
@@ -268,13 +252,6 @@ static	bool		BSP_STTS22_Transaction(tQ_Cmd Rec)
 		break;
 
 	case	CMD_STTS22_TEMP_L:
-		Main_TxBuf[idx ++]	=	Rec.cmd;
-		Main_TxLen = idx;
-		Main_RxBuf	= (uint8_t *)&Data_STTS22_Temp;
-		Main_RxLen	= sizeof(Data_STTS22_Temp);
-		break;
-
-	case	CMD_STTS22_TEMP_H:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
 		Main_TxLen = idx;
 		Main_RxBuf	= (uint8_t *)&Data_STTS22_Temp;
@@ -379,13 +356,7 @@ static	bool		BSP_STTS22_Transaction_SetData(tCmd_STTS22 Cmd)
 		break;
 
 	case	CMD_STTS22_TEMP_L:
-		Main_RxVal16b	=	Main_RxBuf[0];
-		result = false; // wait for CMD_STTS22_TEMP_H and prevent calling Main_Cb_GetData_STTS22()
-		return false; // partial answer. wait for CMD_STTS22_TEMP_H
-
-	case	CMD_STTS22_TEMP_H:
-		Main_RxVal16b	+=	(Main_RxBuf[0] * 0x100);
-		Main_Per_DataResp.Temperature	=	BSP_Per_Convert(eBSP_PER_TARGET_STTS22, eBSP_PER_FUNC_TEMP, Main_RxVal16b);
+		Main_Per_DataResp.Temperature	=	BSP_Per_Convert(eBSP_PER_TARGET_STTS22, eBSP_PER_FUNC_TEMP, Data_STTS22_Temp.Temperature);
 		break;
 
 	default:

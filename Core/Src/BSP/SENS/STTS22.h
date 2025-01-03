@@ -29,11 +29,11 @@
 typedef	enum
 {
 	CMD_STTS22_GET_SN						=	0x01,
-	CMD_STTS22_TEMP_H_LIMIT					=	0x02,
+	CMD_STTS22_TEMP_H_LIMIT					=	0x02, // read/write in sequence also 0x03 as 16-bit
 	CMD_STTS22_TEMP_L_LIMIT					=	0x03,
 	CMD_STTS22_CTRL							=	0x04,
 	CMD_STTS22_STATUS						=	0x05,
-	CMD_STTS22_TEMP_L						=	0x06,
+	CMD_STTS22_TEMP_L						=	0x06, // read in sequence also 0x07 as 16-bit
 	CMD_STTS22_TEMP_H						=	0x07,
 }tCmd_STTS22;
 
