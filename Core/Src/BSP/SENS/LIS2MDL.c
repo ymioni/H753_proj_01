@@ -166,6 +166,7 @@ void 				task_LIS2MDL( void *arguments)
 		osDelay(1); // Consider whether this is necessary.
 
 		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
+		cnt2ok[3]	++;
 
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
 		if( (Main_Q_Err == true) && (msgs < 4))
@@ -216,7 +217,9 @@ bool				BSP_LIS2MDL_Cmd( tBSP_PER_DataCmd	*cmd)
 		result = false;
 	else
 	{
-		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		osStatus_t	status = osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		if( status == osOK)	cnt2ok[2]	++;
+		else				cnt2er[2]	++;
 
 		Main_Device	= cmd->Target;
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
@@ -378,18 +381,18 @@ static	bool		BSP_LIS2MDL_Transaction_SetData(tCmd_LIS2MDL Cmd)
 	{
 	case	CMD_LIS2MDL_GET_SN:
 	case	CMD_LIS2MDL_TEMP_L:
-		printf("LIS2MDL | R: %d | SN: %lX T: %.2f RH: %d\n",
-					result,
-					Main_Per_DataResp.SerialNumber,
-					Main_Per_DataResp.Temperature,
-					Main_Per_DataResp.Humidity_i);
+//		printf("LIS2MDL | R: %d | SN: %lX T: %.2f RH: %d\n",
+//					result,
+//					Main_Per_DataResp.SerialNumber,
+//					Main_Per_DataResp.Temperature,
+//					Main_Per_DataResp.Humidity_i);
 		break;
 
 	case	CMD_LIS2MDL_GET_AXIS:
-		printf("LIS2MDL Axis | X: %d Y: %d Z: %d\n",
-					Main_Per_DataResp.Axis[0],
-					Main_Per_DataResp.Axis[1],
-					Main_Per_DataResp.Axis[2]);
+//		printf("LIS2MDL Axis | X: %d Y: %d Z: %d\n",
+//					Main_Per_DataResp.Axis[0],
+//					Main_Per_DataResp.Axis[1],
+//					Main_Per_DataResp.Axis[2]);
 		break;
 
 	default:

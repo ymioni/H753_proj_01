@@ -135,6 +135,7 @@ void 				task_SHT40( void *arguments)
 		osDelay(1); // Consider whether this is necessary.
 
 		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
+		cnt2ok[11]	++;
 
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
 		if( (Main_Q_Err == true) && (msgs < 4))
@@ -216,7 +217,9 @@ bool				BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd)
 		result = false;
 	else
 	{
-		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		osStatus_t	status = osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		if( status == osOK)	cnt2ok[10]	++;
+		else				cnt2er[10]	++;
 
 		Main_Device	= cmd->Target;
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
@@ -389,11 +392,11 @@ static	bool			BSP_SHT40_Transaction_SetData(tCmd_SHT40 Cmd)
 		break;
 	}
 
-	printf("SHT40  | R: %d | SN: %lX T: %.2f RH: %d\n",
-				result,
-				Main_Per_DataResp.SerialNumber,
-				Main_Per_DataResp.Temperature,
-				Main_Per_DataResp.Humidity_i);
+//	printf("SHT40  | R: %d | SN: %lX T: %.2f RH: %d\n",
+//				result,
+//				Main_Per_DataResp.SerialNumber,
+//				Main_Per_DataResp.Temperature,
+//				Main_Per_DataResp.Humidity_i);
 
 	return result;
 }

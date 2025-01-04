@@ -128,6 +128,7 @@ void 				task_LSM6DSV( void *arguments)
 		osDelay(1); // Consider whether this is necessary.
 
 		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
+		cnt2ok[9]	++;
 
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
 		if( (Main_Q_Err == true) && (msgs < 4))
@@ -164,7 +165,9 @@ bool				BSP_LSM6DSV_Cmd( tBSP_PER_DataCmd	*cmd)
 		result = false;
 	else
 	{
-		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		osStatus_t	status = osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		if( status == osOK)	cnt2ok[8]	++;
+		else				cnt2er[8]	++;
 
 		Main_Device	= cmd->Target;
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
@@ -286,11 +289,11 @@ static	bool		BSP_LSM6DSV_Transaction_SetData(tCmd_LSM6DSV Cmd)
 		break;
 	}
 
-	printf("LSM6DSV | R: %d | SN: %lX T: %.2f RH: %d\n",
-				result,
-				Main_Per_DataResp.SerialNumber,
-				Main_Per_DataResp.Temperature,
-				Main_Per_DataResp.Humidity_i);
+//	printf("LSM6DSV | R: %d | SN: %lX T: %.2f RH: %d\n",
+//				result,
+//				Main_Per_DataResp.SerialNumber,
+//				Main_Per_DataResp.Temperature,
+//				Main_Per_DataResp.Humidity_i);
 
 	return result;
 }

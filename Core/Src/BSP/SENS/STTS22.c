@@ -149,6 +149,7 @@ void 				task_STTS22( void *arguments)
 		osDelay(1); // Consider whether this is necessary.
 
 		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
+		cnt2ok[13]	++;
 
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
 		if( (Main_Q_Err == true) && (msgs < 4))
@@ -207,7 +208,9 @@ bool				BSP_STTS22_Cmd( tBSP_PER_DataCmd	*cmd)
 		result = false;
 	else
 	{
-		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		osStatus_t	status = osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		if( status == osOK)	cnt2ok[12]	++;
+		else				cnt2er[12]	++;
 
 		Main_Device	= cmd->Target;
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
@@ -385,11 +388,11 @@ static	bool		BSP_STTS22_Transaction_SetData(tCmd_STTS22 Cmd)
 		break;
 	}
 
-	printf("STTS22 | R: %d | SN: %lX T: %.2f RH: %d\n",
-				result,
-				Main_Per_DataResp.SerialNumber,
-				Main_Per_DataResp.Temperature,
-				Main_Per_DataResp.Humidity_i);
+//	printf("STTS22 | R: %d | SN: %lX T: %.2f RH: %d\n",
+//				result,
+//				Main_Per_DataResp.SerialNumber,
+//				Main_Per_DataResp.Temperature,
+//				Main_Per_DataResp.Humidity_i);
 
 	return result;
 }

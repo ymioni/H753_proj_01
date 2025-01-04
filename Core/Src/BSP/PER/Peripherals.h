@@ -31,6 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "..\Sens\z_Cnt.h"
 
 /* USER CODE END Includes */
 

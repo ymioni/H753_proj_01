@@ -128,6 +128,7 @@ void 				task_LPS22D( void *arguments)
 		osDelay(1); // Consider whether this is necessary.
 
 		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
+		cnt2ok[5]	++;
 
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
 		if( (Main_Q_Err == true) && (msgs < 4))
@@ -164,7 +165,9 @@ bool				BSP_LPS22D_Cmd( tBSP_PER_DataCmd	*cmd)
 		result = false;
 	else
 	{
-		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		osStatus_t	status = osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		if( status == osOK)	cnt2ok[4]	++;
+		else				cnt2er[4]	++;
 
 		Main_Device	= cmd->Target;
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
@@ -286,11 +289,11 @@ static	bool		BSP_LPS22D_Transaction_SetData(tCmd_LPS22D Cmd)
 		break;
 	}
 
-	printf("LPS22D | R: %d | SN: %lX T: %.2f RH: %d\n",
-				result,
-				Main_Per_DataResp.SerialNumber,
-				Main_Per_DataResp.Temperature,
-				Main_Per_DataResp.Humidity_i);
+//	printf("LPS22D | R: %d | SN: %lX T: %.2f RH: %d\n",
+//				result,
+//				Main_Per_DataResp.SerialNumber,
+//				Main_Per_DataResp.Temperature,
+//				Main_Per_DataResp.Humidity_i);
 
 	return result;
 }

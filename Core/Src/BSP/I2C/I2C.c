@@ -87,6 +87,7 @@ void 				task_I2C( void *arguments)
 		osDelay(1); // Consider whether this is necessary.
 
 		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
+		cnt1ok[5]	++;
 
 		BSP_I2C_Session(Cmd);
 	}
@@ -101,6 +102,8 @@ bool				BSP_I2C_Cmd( tBSP_I2C_Session Cmd)
 	osStatus_t	status;
 
 	status = osMessageQueuePut(Main_Q, &Cmd, 0, pdMS_TO_TICKS( 20));
+	if( status == osOK)	cnt1ok[4]	++;
+	else				cnt1er[3]	++;
 
     return (status == osOK);
 }
@@ -117,6 +120,8 @@ static	bool		BSP_I2C_Session( tBSP_I2C_Session Cmd)
 	Main_taskHandle	= xTaskGetCurrentTaskHandle();
 
 	HAL_result = HAL_I2C_Master_Transmit_IT(Cmd.i2cHandle, Cmd.Address, Cmd.TxBuf, Cmd.TxLen);
+	if( HAL_result == HAL_OK)	cnt1ok[0]	++;
+	else						cnt1er[0]	++;
 	ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50)); // will be released by HAL_I2C_MasterTxCpltCallback()::vTaskNotifyGiveFromISR
 
 	vTaskDelay(Cmd.DelayAfterTx);
@@ -124,6 +129,8 @@ static	bool		BSP_I2C_Session( tBSP_I2C_Session Cmd)
 	if( Main_RxLen > 0)
 	{
 		HAL_result = HAL_I2C_Master_Receive_IT(Cmd.i2cHandle, Cmd.Address, Cmd.RxBuf, Cmd.RxLen);
+		if( HAL_result == HAL_OK)	cnt1ok[1]	++;
+		else						cnt1er[1]	++;
 		ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50)); // will be released by HAL_I2C_MasterRxCpltCallback()::vTaskNotifyGiveFromISR
 		vTaskDelay(Cmd.DelayAfterRx);
 	}
@@ -137,6 +144,7 @@ void				HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *handle)
 {
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
+	cnt1ok[2]	++;
 	vTaskNotifyGiveFromISR(Main_taskHandle, &xHigherPriorityTaskWoken);
 }
 
@@ -144,6 +152,7 @@ void				HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *handle)
 {
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
+	cnt1ok[3]	++;
 	vTaskNotifyGiveFromISR(Main_taskHandle, &xHigherPriorityTaskWoken);
 }
 
@@ -151,6 +160,7 @@ void				HAL_I2C_ErrorCallback(I2C_HandleTypeDef *handle)
 {
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
+	cnt1er[2]	++;
 	vTaskNotifyGiveFromISR(Main_taskHandle, &xHigherPriorityTaskWoken);
 }
 
