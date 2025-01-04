@@ -146,8 +146,11 @@ float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32
 /* Private defines -----------------------------------------------------------*/
 
 /* USER CODE BEGIN Private defines */
+#define	BSP_CLEAR			0
 #define	BSP_GET				0
 #define	BSP_SET				1
+
+#define PER_TIME_NOTIFY		100 // msec
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

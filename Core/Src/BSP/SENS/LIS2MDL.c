@@ -1,3 +1,4 @@
+/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : lis2mdl..c
@@ -79,6 +80,8 @@ struct __PACKED
 	uint16_t	Temperature;
 }Data_LIS2MDL_Temp;
 
+static	bool						Main_Q_Err			= false;
+static	tBSP_PER_Target				Main_Device			= eBSP_PER_TARGET_VOID;
 static	osMessageQueueId_t 			Main_Q;
 static	const osMessageQueueAttr_t	Q_attributes		= {	.name = "Q_LIS2MDL"};
 static	I2C_HandleTypeDef*			Main_Handle 		= NULL;
@@ -88,7 +91,7 @@ static	uint8_t						Main_Setting_Ctrl_B	= 0x00;
 static	uint8_t						Main_Setting_Ctrl_C	= 0x01;
 
 static	uint16_t					Main_Timeout		= 50;
-static	uint16_t					Main_Delay 			= 20;
+static	uint16_t					Main_Delay 			= 5;
 
 static	uint8_t 					Main_TxBuf[2]		= {0};
 static	uint8_t 					Main_TxLen			= 0;
@@ -104,7 +107,7 @@ static	tBSP_PER_DataResp			Main_Per_DataResp	= {0};
 static	bool		BSP_LIS2MDL_Transaction(tQ_Cmd Rec);
 static	void		BSP_LIS2MDL_Transaction_Tx(bool Rx, tCmd_LIS2MDL Cmd);
 static	void		BSP_LIS2MDL_Transaction_Rx(void);
-static	void		BSP_LIS2MDL_Session(void);
+static	bool		BSP_LIS2MDL_Session(void);
 static	bool		BSP_LIS2MDL_Transaction_SetData(tCmd_LIS2MDL Cmd);
 static	void		BSP_LIS2MDL_SetCtrl(uint8_t	Value, uint8_t Reg);
 static	uint8_t		BSP_LIS2MDL_GetCtrl( uint8_t Reg);
@@ -164,6 +167,13 @@ void 				task_LIS2MDL( void *arguments)
 
 		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
 
+		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
+		if( (Main_Q_Err == true) && (msgs < 4))
+		{
+			Main_Q_Err	= false;
+			BSP_Sensors_SetErr( Main_Device, eBSP_SENS_ERR_Q_LVL, BSP_CLEAR);
+		}
+
 		BSP_LIS2MDL_Transaction(Cmd);
 	}
 }
@@ -205,7 +215,17 @@ bool				BSP_LIS2MDL_Cmd( tBSP_PER_DataCmd	*cmd)
 	if( Cmd.cmd == 0)
 		result = false;
 	else
+	{
 		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+
+		Main_Device	= cmd->Target;
+		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
+		if( (Main_Q_Err == false) && (msgs > 12))
+		{
+			Main_Q_Err	= true;
+			BSP_Sensors_SetErr( cmd->Target, eBSP_SENS_ERR_Q_LVL, BSP_SET);
+		}
+	}
 
 	return	result;
 }
@@ -292,15 +312,15 @@ static	void		BSP_LIS2MDL_Transaction_Tx(bool Rx, tCmd_LIS2MDL Cmd)
 	Main_Session.RxLen			= 0;
 	Main_Session.Timeout		= Main_Timeout;
 	Main_Session.DelayAfterTx	= Main_Delay;
-	Main_Session.DelayAfterRx	= 0;
 
 	if( Rx)
 		BSP_LIS2MDL_Transaction_Rx();
 
-	BSP_LIS2MDL_Session();
-
-	if( Rx)
-		BSP_LIS2MDL_Transaction_SetData(Cmd);
+	if( BSP_LIS2MDL_Session() == true)
+	{
+		if( Rx)
+			BSP_LIS2MDL_Transaction_SetData(Cmd);
+	}
 }
 
 /**
@@ -311,18 +331,20 @@ static	void		BSP_LIS2MDL_Transaction_Rx(void)
 {
 	Main_Session.RxBuf			= Main_RxBuf;
 	Main_Session.RxLen			= Main_RxLen;
-	Main_Session.DelayAfterRx	= Main_Delay;
+	Main_Session.DelayAfterRx	= 0;
 }
 
 /**
   * @brief
   * @retval
   */
-static	void		BSP_LIS2MDL_Session(void)
+static	bool		BSP_LIS2MDL_Session(void)
 {
+	uint32_t	rv;
 	BSP_I2C_Cmd(Main_Session);
 
-	ulTaskNotifyTake(pdTRUE, 1000);
+	rv = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(PER_TIME_NOTIFY)); // will be released by BSP_I2C_Session()::xTaskNotifyGive
+	return( rv > 0);
 }
 
 /**

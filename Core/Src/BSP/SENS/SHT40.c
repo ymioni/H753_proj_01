@@ -70,13 +70,15 @@ struct __PACKED
 }Data_SHT40_SN;
 
 
+static	bool						Main_Q_Err			= false;
+static	tBSP_PER_Target				Main_Device			= eBSP_PER_TARGET_VOID;
 static	osMessageQueueId_t 			Main_Q;
 static	const osMessageQueueAttr_t	Q_attributes		= {	.name = "Q_SHT40"};
 static	I2C_HandleTypeDef*			Main_Handle 		= NULL;
 static	tCb_Sensor_GetData			Main_CbFunc			= NULL;
 
 static	uint16_t					Main_Timeout		= 50;
-static	uint16_t					Main_Delay 			= 20;
+static	uint16_t					Main_Delay 			= 5;
 
 static	uint8_t 					Main_TxBuf[2]		= {0};
 static	uint8_t 					Main_TxLen			= 0;
@@ -92,7 +94,7 @@ static	tBSP_PER_DataResp			Main_Per_DataResp	= {0};
 static	bool		BSP_SHT40_Transaction(tQ_Cmd Rec);
 static	void		BSP_SHT40_Transaction_Tx(bool Rx, tCmd_SHT40 Cmd);
 static	void		BSP_SHT40_Transaction_Rx(void);
-static	void		BSP_SHT40_Session(void);
+static	bool		BSP_SHT40_Session(void);
 static	bool		BSP_SHT40_Transaction_SetData(tCmd_SHT40 Cmd);
 
 
@@ -133,6 +135,13 @@ void 				task_SHT40( void *arguments)
 		osDelay(1); // Consider whether this is necessary.
 
 		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
+
+		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
+		if( (Main_Q_Err == true) && (msgs < 4))
+		{
+			Main_Q_Err	= false;
+			BSP_Sensors_SetErr( Main_Device, eBSP_SENS_ERR_Q_LVL, BSP_CLEAR);
+		}
 
 		BSP_SHT40_Transaction(Cmd);
 	}
@@ -206,7 +215,17 @@ bool				BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd)
 	if( Cmd.cmd == 0)
 		result = false;
 	else
+	{
 		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+
+		Main_Device	= cmd->Target;
+		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
+		if( (Main_Q_Err == false) && (msgs > 12))
+		{
+			Main_Q_Err	= true;
+			BSP_Sensors_SetErr( cmd->Target, eBSP_SENS_ERR_Q_LVL, BSP_SET);
+		}
+	}
 
 	return	result;
 }
@@ -291,15 +310,28 @@ static	void		BSP_SHT40_Transaction_Tx(bool Rx, tCmd_SHT40 Cmd)
 	Main_Session.RxLen			= 0;
 	Main_Session.Timeout		= Main_Timeout;
 	Main_Session.DelayAfterTx	= Main_Delay;
-	Main_Session.DelayAfterRx	= 0;
+
+	switch( Cmd)
+	{
+	case	CMD_SHT40_GET_TEMP_RH_PRECISION_HI:
+	case	CMD_SHT40_GET_TEMP_RH_PRECISION_MED:
+	case	CMD_SHT40_GET_TEMP_RH_PRECISION_LO:
+		Main_Session.DelayAfterTx	= 20;
+		break;
+
+	default:
+		Main_Session.DelayAfterTx	= Main_Delay;
+		break;
+	}
 
 	if( Rx)
 		BSP_SHT40_Transaction_Rx();
 
-	BSP_SHT40_Session();
-
-	if( Rx)
-		BSP_SHT40_Transaction_SetData(Cmd);
+	if( BSP_SHT40_Session() == true)
+	{
+		if( Rx)
+			BSP_SHT40_Transaction_SetData(Cmd);
+	}
 }
 
 /**
@@ -310,18 +342,20 @@ static	void		BSP_SHT40_Transaction_Rx(void)
 {
 	Main_Session.RxBuf			= Main_RxBuf;
 	Main_Session.RxLen			= Main_RxLen;
-	Main_Session.DelayAfterRx	= Main_Delay;
+	Main_Session.DelayAfterRx	= 0;
 }
 
 /**
   * @brief
   * @retval
   */
-static	void		BSP_SHT40_Session(void)
+static	bool		BSP_SHT40_Session(void)
 {
+	uint32_t	rv;
 	BSP_I2C_Cmd(Main_Session);
 
-	ulTaskNotifyTake(pdTRUE, 1000);
+	rv = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(PER_TIME_NOTIFY)); // will be released by BSP_I2C_Session()::xTaskNotifyGive
+	return( rv > 0);
 }
 
 /**

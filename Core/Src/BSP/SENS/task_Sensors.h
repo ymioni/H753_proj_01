@@ -26,6 +26,14 @@
 #include "..\PER\Peripherals.h"
 
 /* Private typedef -----------------------------------------------------------*/
+typedef	enum
+{
+	eBSP_SENS_ERR_VOID			,		//	0
+	eBSP_SENS_ERR_Q_LVL			,		//	1
+	/***** DON'T CROSS THIS LINE *****/
+	eBSP_SENS_MAX_VALUE_ERR				//
+}tBSP_SENS_ErrCode;
+
 /* USER CODE BEGIN PTD */
 typedef struct
 {
@@ -58,6 +66,7 @@ typedef struct
 void				BSP_Sensors_Init( I2C_HandleTypeDef *handle);
 void 				task_Sensors( void *arguments);
 void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR);
+void				BSP_Sensors_SetErr( tBSP_PER_Target Source, tBSP_SENS_ErrCode ErrCode, bool Set);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/

@@ -62,7 +62,8 @@ struct
 struct
 {
 	void*					handle;
-}Main_Targets[eBSP_PER_MAX_VALUE_TARGET];
+	bool					err_Q_Lvl;
+}Main_Targets[eBSP_PER_MAX_VALUE_TARGET] = {0};
 
 static	QueueHandle_t				Main_Q;
 static	tQ_Sensor_Cmd				Main_Q_Cmd;
@@ -109,7 +110,7 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	BSP_Sensors_Cb_Timer(NULL);	//	MUST call this BEFORE calling osTimerStart() (it's a timer's Cb function)
 
 	Main_Timer_idle	=	osTimerNew( BSP_Sensors_Cb_Timer, osTimerPeriodic, NULL, NULL);
-	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(3000));
+	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(50));
 }
 
 /**
@@ -188,6 +189,26 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 	}
 	else
 		xQueueSend( Main_Q, &Main_Q_Cmd, portMAX_DELAY);
+}
+
+/**
+  * @brief
+  * @retval
+  */
+void				BSP_Sensors_SetErr( tBSP_PER_Target Source, tBSP_SENS_ErrCode ErrCode, bool Set)
+{
+	if( Source >= eBSP_PER_MAX_VALUE_TARGET)	return;
+	if( ErrCode >= eBSP_SENS_MAX_VALUE_ERR)		return;
+
+	switch( ErrCode)
+	{
+	case	eBSP_SENS_ERR_Q_LVL:
+		Main_Targets[Source].err_Q_Lvl = (Set == BSP_SET) ? true : false;
+		break;
+
+	default:
+		break;
+	}
 }
 
 /**
@@ -317,7 +338,8 @@ static	void		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func
 	if( (target == eBSP_PER_TARGET_SHT40A) && (function == eBSP_PER_FUNC_TEMP_RH))
 		Cmd.Precision	= arg1;
 
-	BSP_Sensors_Cmd( &Cmd, false);
+	if( Main_Targets[target].err_Q_Lvl == false) // either sensor signals for Queue nearly ovf
+		BSP_Sensors_Cmd( &Cmd, false);
 }
 
 /* USER CODE END 4 */
