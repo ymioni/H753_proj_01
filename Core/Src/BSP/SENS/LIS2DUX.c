@@ -172,7 +172,7 @@ static	bool		BSP_LIS2DUX_Transaction(tQ_Cmd Rec)
 	{
 	case	CMD_LIS2DUX_GET_SN:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
-		Main_TxLen = idx;
+		Main_TxLen 	= idx;
 		Main_RxBuf	= (uint8_t *)&Data_LIS2DUX_SN;
 		Main_RxLen	= sizeof(Data_LIS2DUX_SN);
 		break;

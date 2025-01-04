@@ -77,6 +77,7 @@ static	void		BSP_Sensors_InitSensors( void);
 static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd);
 static	void		BSP_Sensors_Cb_GetData( tBSP_PER_DataResp* data);
 static	void		BSP_Sensors_Cb_Timer( void *argument);
+static	void		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func function, uint16_t arg1);
 
 /* USER CODE END PFP */
 
@@ -138,11 +139,10 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 	Main_Q_Cmd.target	= Cmd->Target;
 	Main_Q_Cmd.func		= Cmd->Function;
 
-	switch(Main_Q_Cmd.target)
+	switch( Main_Q_Cmd.target)
 	{
-	// SHT40
 	case	eBSP_PER_TARGET_SHT40A:
-		switch(Main_Q_Cmd.func)
+		switch( Main_Q_Cmd.func)
 		{
 		case	eBSP_PER_FUNC_TEMP:
 		case	eBSP_PER_FUNC_RH:
@@ -150,26 +150,34 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 			Main_Q_Cmd.arg1	= Cmd->Precision;
 			break;
 
-		default:
-			break;
+		default:	break;
 		}
 		break;
 
-	// STTS22
 	case	eBSP_PER_TARGET_STTS22:
-		switch(Main_Q_Cmd.func)
+		switch( Main_Q_Cmd.func)
 		{
 		case	eBSP_PER_FUNC_SET_CTRL:
 			Main_Q_Cmd.arg1	= Cmd->Control;
 			break;
 
-		default:
-			break;
+		default:	break;
 		}
 		break;
 
-	default:
+	case	eBSP_PER_TARGET_LIS2MDL:
+		switch( Main_Q_Cmd.func)
+		{
+		case	eBSP_PER_FUNC_SET_CTRL:
+			Main_Q_Cmd.arg1	= Cmd->Control;
+			Main_Q_Cmd.arg2	= Cmd->idx;
+			break;
+
+		default:	break;
+		}
 		break;
+
+	default:	break;
 	}
 
 	if( FromISR)
@@ -188,13 +196,13 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
   */
 static	void		BSP_Sensors_InitSensors( void)
 {
-	BSP_SHT40_Init(Main_Targets[eBSP_PER_TARGET_SHT40A].handle, BSP_Sensors_Cb_GetData);
-	BSP_STTS22_Init(Main_Targets[eBSP_PER_TARGET_STTS22].handle, BSP_Sensors_Cb_GetData);
-	BSP_LPS22D_Init(Main_Targets[eBSP_PER_TARGET_LPS22D].handle, BSP_Sensors_Cb_GetData);
-	BSP_LIS2MDL_Init(Main_Targets[eBSP_PER_TARGET_LIS2MDL].handle, BSP_Sensors_Cb_GetData);
-	BSP_LSM6DSV_Init(Main_Targets[eBSP_PER_TARGET_LSM6DSV].handle, BSP_Sensors_Cb_GetData);
-	BSP_LSM6DSO_Init(Main_Targets[eBSP_PER_TARGET_LSM6DSO].handle, BSP_Sensors_Cb_GetData);
-	BSP_LIS2DUX_Init(Main_Targets[eBSP_PER_TARGET_LIS2DUX].handle, BSP_Sensors_Cb_GetData);
+	BSP_SHT40_Init	(Main_Targets[eBSP_PER_TARGET_SHT40A].handle, 	BSP_Sensors_Cb_GetData);
+	BSP_STTS22_Init	(Main_Targets[eBSP_PER_TARGET_STTS22].handle,	BSP_Sensors_Cb_GetData);
+	BSP_LPS22D_Init	(Main_Targets[eBSP_PER_TARGET_LPS22D].handle, 	BSP_Sensors_Cb_GetData);
+	BSP_LIS2MDL_Init(Main_Targets[eBSP_PER_TARGET_LIS2MDL].handle, 	BSP_Sensors_Cb_GetData);
+	BSP_LSM6DSV_Init(Main_Targets[eBSP_PER_TARGET_LSM6DSV].handle, 	BSP_Sensors_Cb_GetData);
+	BSP_LSM6DSO_Init(Main_Targets[eBSP_PER_TARGET_LSM6DSO].handle, 	BSP_Sensors_Cb_GetData);
+	BSP_LIS2DUX_Init(Main_Targets[eBSP_PER_TARGET_LIS2DUX].handle, 	BSP_Sensors_Cb_GetData);
 }
 
 /**
@@ -219,8 +227,7 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 			Cmd.Precision	= cmd->arg1;
 			break;
 
-		default:
-			break;
+		default:	break;
 		}
 
 		BSP_SHT40_Cmd(&Cmd);
@@ -233,8 +240,7 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 			Cmd.Control	= cmd->arg1;
 			break;
 
-		default:
-			break;
+		default:	break;
 		}
 
 		BSP_STTS22_Cmd(&Cmd);
@@ -245,6 +251,16 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 		break;
 
 	case	eBSP_PER_TARGET_LIS2MDL:
+		switch(cmd->func)
+		{
+		case	eBSP_PER_FUNC_SET_CTRL:
+			Cmd.Control	= cmd->arg1;
+			Cmd.idx		= cmd->arg2;
+			break;
+
+		default:	break;
+		}
+
 		BSP_LIS2MDL_Cmd(&Cmd);
 		break;
 
@@ -260,8 +276,7 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 		BSP_LIS2DUX_Cmd(&Cmd);
 		break;
 
-	default:
-		break;
+	default:	break;
 	}
 }
 
@@ -280,48 +295,29 @@ static	void		BSP_Sensors_Cb_GetData( tBSP_PER_DataResp* data)
   */
 static	void		BSP_Sensors_Cb_Timer( void *argument)
 {
-	{
-		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_SHT40A,
-										.Function	=	eBSP_PER_FUNC_TEMP_RH,
-										.Precision	=	eBSP_PER_PRCSN_HIGH};
-		BSP_Sensors_Cmd( &Cmd, false);
-	}
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_SHT40A,	eBSP_PER_FUNC_TEMP_RH,	eBSP_PER_PRCSN_HIGH);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_STTS22,	eBSP_PER_FUNC_TEMP_RH,	0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LPS22D,	eBSP_PER_FUNC_GET_SN,	0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_TEMP_RH,	0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_GET_AXIS,	0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSV,	eBSP_PER_FUNC_GET_SN,	0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSO,	eBSP_PER_FUNC_GET_SN,	0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2DUX,	eBSP_PER_FUNC_GET_SN,	0);
+}
 
-	{
-		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_STTS22,
-										.Function	=	eBSP_PER_FUNC_TEMP_RH};
-		BSP_Sensors_Cmd( &Cmd, false);
-	}
+/**
+  * @brief
+  * @retval
+  */
+static	void		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func function, uint16_t arg1)
+{
+	tBSP_PER_DataCmd	Cmd	=	{	.Target		=	target,
+									.Function	=	function};
 
-	{
-		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LPS22D,
-										.Function	=	eBSP_PER_FUNC_GET_SN};
-		BSP_Sensors_Cmd( &Cmd, false);
-	}
+	if( (target == eBSP_PER_TARGET_SHT40A) && (function == eBSP_PER_FUNC_TEMP_RH))
+		Cmd.Precision	= arg1;
 
-	{
-		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LIS2MDL,
-										.Function	=	eBSP_PER_FUNC_GET_SN};
-		BSP_Sensors_Cmd( &Cmd, false);
-	}
-
-	{
-		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSV,
-										.Function	=	eBSP_PER_FUNC_GET_SN};
-		BSP_Sensors_Cmd( &Cmd, false);
-	}
-
-	{
-		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSO,
-										.Function	=	eBSP_PER_FUNC_GET_SN};
-		BSP_Sensors_Cmd( &Cmd, false);
-	}
-
-	{
-		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LIS2DUX,
-										.Function	=	eBSP_PER_FUNC_GET_SN};
-		BSP_Sensors_Cmd( &Cmd, false);
-	}
+	BSP_Sensors_Cmd( &Cmd, false);
 }
 
 /* USER CODE END 4 */

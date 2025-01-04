@@ -172,7 +172,7 @@ static	bool		BSP_LSM6DSO_Transaction(tQ_Cmd Rec)
 	{
 	case	CMD_LSM6DSO_GET_SN:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
-		Main_TxLen = idx;
+		Main_TxLen 	= idx;
 		Main_RxBuf	= (uint8_t *)&Data_LSM6DSO_SN;
 		Main_RxLen	= sizeof(Data_LSM6DSO_SN);
 		break;

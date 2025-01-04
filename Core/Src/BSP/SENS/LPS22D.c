@@ -172,7 +172,7 @@ static	bool		BSP_LPS22D_Transaction(tQ_Cmd Rec)
 	{
 	case	CMD_LPS22D_GET_SN:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
-		Main_TxLen = idx;
+		Main_TxLen 	= idx;
 		Main_RxBuf	= (uint8_t *)&Data_LPS22D_SN;
 		Main_RxLen	= sizeof(Data_LPS22D_SN);
 		break;

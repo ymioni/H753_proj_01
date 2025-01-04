@@ -63,6 +63,7 @@ typedef	enum
 	eBSP_PER_FUNC_SET_CTRL		,		//	7
 	eBSP_PER_FUNC_GET_STATUS	,		//	8
 	eBSP_PER_FUNC_RESET			,		//	9
+	eBSP_PER_FUNC_GET_AXIS		,		//	10
 	/***** DON'T CROSS THIS LINE *****/
 	eBSP_PER_MAX_VALUE_FUNC				//
 }tBSP_PER_Func;
@@ -90,6 +91,17 @@ typedef	enum
 	eBSP_PER_MAX_VALUE_STATE			//
 }tBSP_PER_State;
 
+
+typedef	enum
+{
+	eBSP_PER_AXIS_X				,		//
+	eBSP_PER_AXIS_Y				,		//
+	eBSP_PER_AXIS_Z				,		//
+	/***** DON'T CROSS THIS LINE *****/
+	eBSP_PER_MAX_VALUE_AXIS				//
+}tBSP_PER_Axis;
+
+
 typedef struct
 {
 	tBSP_PER_Target		Target;
@@ -98,6 +110,7 @@ typedef struct
 	uint16_t			Time_msec;
 	uint16_t			Power_mW;
 	uint16_t			Control;
+	uint8_t				idx; // use if need to config more than 1 instance (like Config)
 }tBSP_PER_DataCmd;
 
 typedef struct
@@ -109,6 +122,7 @@ typedef struct
 	uint32_t			SerialNumber;
 	uint8_t				Control;
 	uint8_t				Status;
+	int16_t				Axis[3];
 }tBSP_PER_DataResp;
 /* USER CODE END ET */
 

@@ -224,14 +224,14 @@ static	bool		BSP_SHT40_Transaction(tQ_Cmd Rec)
 	{
 	case	CMD_SHT40_GET_SN:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
-		Main_TxLen = idx;
+		Main_TxLen 	= idx;
 		Main_RxBuf	= (uint8_t *)&Data_SHT40_SN;
 		Main_RxLen	= sizeof(Data_SHT40_SN);
 		break;
 
 	case	CMD_SHT40_RESET:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
-		Main_TxLen = idx;
+		Main_TxLen 	= idx;
 		Main_RxLen	= 0;
 		break;
 
@@ -239,7 +239,7 @@ static	bool		BSP_SHT40_Transaction(tQ_Cmd Rec)
 	case	CMD_SHT40_GET_TEMP_RH_PRECISION_MED:
 	case	CMD_SHT40_GET_TEMP_RH_PRECISION_LO:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
-		Main_TxLen = idx;
+		Main_TxLen 	= idx;
 		Main_RxBuf	= (uint8_t *)&Data_SHT40_Temp;
 		Main_RxLen	= sizeof(Data_SHT40_Temp);
 		break;
@@ -251,7 +251,7 @@ static	bool		BSP_SHT40_Transaction(tQ_Cmd Rec)
 	case	CMD_SHT40_HEATER_20MW_1000MSEC:
 	case	CMD_SHT40_HEATER_20MW_100MSEC:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
-		Main_TxLen = idx;
+		Main_TxLen 	= idx;
 		Main_RxLen	= 0;
 		break;
 

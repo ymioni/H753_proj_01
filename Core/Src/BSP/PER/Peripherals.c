@@ -103,6 +103,18 @@ float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32
 		}
 		break;
 
+	case eBSP_PER_TARGET_LIS2MDL:
+		switch( Function)
+		{
+		case	eBSP_PER_FUNC_TEMP:
+		result = 25.0 + ((int16_t)Value / 0x100);
+		break;
+
+		default:
+			break;
+		}
+		break;
+
 	default:
 		break;
 	}

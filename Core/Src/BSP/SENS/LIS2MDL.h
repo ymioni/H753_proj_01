@@ -29,6 +29,12 @@
 typedef	enum
 {
 	CMD_LIS2MDL_GET_SN						=	0x4F,
+	CMD_LIS2MDL_CTRL_REG_A					=	0x60,
+	CMD_LIS2MDL_CTRL_REG_B					=	0x61,
+	CMD_LIS2MDL_CTRL_REG_C					=	0x62,
+	CMD_LIS2MDL_GET_AXIS					=	0x68, // 3 x 2 registers (OUTX, OUTY, OUTZ)
+	CMD_LIS2MDL_TEMP_L						=	0x6E, // read in sequence also 0x6F as 16-bit
+	CMD_LIS2MDL_TEMP_H						=	0x6F,
 }tCmd_LIS2MDL;
 
 typedef	void(*tCb_GetData_LIS2MDL)(tBSP_PER_DataResp *Data);

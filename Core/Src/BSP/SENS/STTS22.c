@@ -215,7 +215,7 @@ static	bool		BSP_STTS22_Transaction(tQ_Cmd Rec)
 	{
 	case	CMD_STTS22_GET_SN:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
-		Main_TxLen = idx;
+		Main_TxLen 	= idx;
 		Main_RxBuf	= (uint8_t *)&Data_STTS22_SN;
 		Main_RxLen	= sizeof(Data_STTS22_SN);
 		break;
@@ -246,14 +246,14 @@ static	bool		BSP_STTS22_Transaction(tQ_Cmd Rec)
 
 	case	CMD_STTS22_STATUS:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
-		Main_TxLen = idx;
+		Main_TxLen 	= idx;
 		Main_RxBuf	= (uint8_t *)&Data_STTS22_Status;
 		Main_RxLen	= sizeof(Data_STTS22_Status);
 		break;
 
 	case	CMD_STTS22_TEMP_L:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
-		Main_TxLen = idx;
+		Main_TxLen 	= idx;
 		Main_RxBuf	= (uint8_t *)&Data_STTS22_Temp;
 		Main_RxLen	= sizeof(Data_STTS22_Temp);
 		break;
