@@ -158,7 +158,7 @@ GPIO_TypeDef*	Port = NULL;
 					tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_SHT40A,
 													.Function	=	eBSP_PER_FUNC_TEMP_RH,
 													.Precision	=	eBSP_PER_PRCSN_HIGH};
-					BSP_Sensors_Cmd( &Cmd, false);
+					BSP_Sensors_Cmd( &Cmd, true);
 				}
 			}
 			else
