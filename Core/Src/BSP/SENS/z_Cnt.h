@@ -37,8 +37,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-extern	uint32_t	cnt1ok[6];
-extern	uint32_t	cnt1er[4];
+extern	uint32_t	cnt1ok[7];
+extern	uint32_t	cnt1er[7];
 
 extern	uint32_t	cnt2ok[14];
 extern	uint32_t	cnt2er[14];

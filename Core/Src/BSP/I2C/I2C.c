@@ -53,6 +53,9 @@ static	const osMessageQueueAttr_t	Q_attributes	= {	.name = "Q_I2C"};
 static	uint16_t					Main_RxLen		= 0;
 static	TaskHandle_t				Main_taskHandle	= NULL;
 
+static	osMutexId_t 				Main_Mtx;
+static	const osMutexAttr_t			Mtx_attributes	= {	.name = "M_I2C"};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -72,6 +75,7 @@ static	bool		BSP_I2C_Session( tBSP_I2C_Session Cmd);
 void				BSP_I2C_Init( I2C_HandleTypeDef *handle)
 {
 	Main_Q	= osMessageQueueNew(16, sizeof(tBSP_I2C_Session), &Q_attributes);
+	Main_Mtx	= osMutexNew( &Mtx_attributes);
 }
 
 /**
@@ -87,7 +91,7 @@ void 				task_I2C( void *arguments)
 		osDelay(1); // Consider whether this is necessary.
 
 		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
-		cnt1ok[5]	++;
+		cnt1ok[6]	++;
 
 		BSP_I2C_Session(Cmd);
 	}
@@ -100,11 +104,24 @@ void 				task_I2C( void *arguments)
 bool				BSP_I2C_Cmd( tBSP_I2C_Session Cmd)
 {
 	osStatus_t	status;
+	static	bool	f = false;
 
-	status = osMessageQueuePut(Main_Q, &Cmd, 0, pdMS_TO_TICKS( 20));
+	if( f == true) cnt1er[6] ++;
+	f = true;
+
+	status	= osMutexAcquire( Main_Mtx, pdMS_TO_TICKS( 50));
 	if( status == osOK)	cnt1ok[4]	++;
-	else				cnt1er[3]	++;
+	else				cnt1er[4]	++;
 
+	if( status == osOK)
+	{
+		status = osMessageQueuePut(Main_Q, &Cmd, 0, pdMS_TO_TICKS( 20));
+		osMutexRelease( Main_Mtx);
+		if( status == osOK)	cnt1ok[5]	++;
+		else				cnt1er[5]	++;
+	}
+
+	f = false;
     return (status == osOK);
 }
 
