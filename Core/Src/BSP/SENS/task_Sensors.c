@@ -150,8 +150,6 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 		case	eBSP_PER_FUNC_TEMP_RH:
 			Main_Q_Cmd.arg1	= Cmd->Precision;
 			break;
-
-		default:	break;
 		}
 		break;
 
@@ -161,8 +159,6 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 		case	eBSP_PER_FUNC_SET_CTRL:
 			Main_Q_Cmd.arg1	= Cmd->Control;
 			break;
-
-		default:	break;
 		}
 		break;
 
@@ -173,12 +169,8 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 			Main_Q_Cmd.arg1	= Cmd->Control;
 			Main_Q_Cmd.arg2	= Cmd->idx;
 			break;
-
-		default:	break;
 		}
 		break;
-
-	default:	break;
 	}
 
 	if( FromISR)
@@ -204,9 +196,6 @@ void				BSP_Sensors_SetErr( tBSP_PER_Target Source, tBSP_SENS_ErrCode ErrCode, b
 	{
 	case	eBSP_SENS_ERR_Q_LVL:
 		Main_Targets[Source].err_Q_Lvl = (Set == BSP_SET) ? true : false;
-		break;
-
-	default:
 		break;
 	}
 }
@@ -247,8 +236,6 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 		case	eBSP_PER_FUNC_TEMP_RH:
 			Cmd.Precision	= cmd->arg1;
 			break;
-
-		default:	break;
 		}
 
 		BSP_SHT40_Cmd(&Cmd);
@@ -260,8 +247,6 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 		case	eBSP_PER_FUNC_SET_CTRL:
 			Cmd.Control	= cmd->arg1;
 			break;
-
-		default:	break;
 		}
 
 		BSP_STTS22_Cmd(&Cmd);
@@ -278,8 +263,6 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 			Cmd.Control	= cmd->arg1;
 			Cmd.idx		= cmd->arg2;
 			break;
-
-		default:	break;
 		}
 
 		BSP_LIS2MDL_Cmd(&Cmd);
@@ -296,8 +279,6 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 	case	eBSP_PER_TARGET_LIS2DUX:
 		BSP_LIS2DUX_Cmd(&Cmd);
 		break;
-
-	default:	break;
 	}
 }
 

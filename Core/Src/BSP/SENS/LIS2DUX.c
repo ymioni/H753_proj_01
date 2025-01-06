@@ -155,9 +155,6 @@ bool				BSP_LIS2DUX_Cmd( tBSP_PER_DataCmd	*cmd)
 	case	eBSP_PER_FUNC_GET_SN:
 		Cmd.cmd	= CMD_LIS2DUX_GET_SN;
 		break;
-
-	default:
-		break;
 	}
 
 	if( Cmd.cmd == 0)

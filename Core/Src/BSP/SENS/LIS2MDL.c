@@ -207,9 +207,6 @@ bool				BSP_LIS2MDL_Cmd( tBSP_PER_DataCmd	*cmd)
 	case	eBSP_PER_FUNC_TEMP_RH:
 		Cmd.cmd	= CMD_LIS2MDL_TEMP_L;
 		break;
-
-	default:
-		break;
 	}
 
 	if( Cmd.cmd == 0)
@@ -390,9 +387,6 @@ static	bool		BSP_LIS2MDL_Transaction_SetData(tCmd_LIS2MDL Cmd)
 					Main_Per_DataResp.Axis[0],
 					Main_Per_DataResp.Axis[1],
 					Main_Per_DataResp.Axis[2]);
-		break;
-
-	default:
 		break;
 	}
 

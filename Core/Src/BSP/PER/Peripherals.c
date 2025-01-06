@@ -82,9 +82,6 @@ float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32
 	        if( result < 0)		result = 0.0;
 	        if( result > 100)	result = 100.0;
 			break;
-
-		default:
-			break;
 		}
 		break;
 
@@ -97,9 +94,6 @@ float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32
 		else
 			result = (((int)Value - 0x10000) / 100.0);
 		break;
-
-		default:
-			break;
 		}
 		break;
 
@@ -109,13 +103,7 @@ float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32
 		case	eBSP_PER_FUNC_TEMP:
 		result = 25.0 + ((int16_t)Value / 0x100);
 		break;
-
-		default:
-			break;
 		}
-		break;
-
-	default:
 		break;
 	}
 

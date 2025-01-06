@@ -198,9 +198,6 @@ bool				BSP_STTS22_Cmd( tBSP_PER_DataCmd	*cmd)
 	case	eBSP_PER_FUNC_GET_STATUS:
 		Cmd.cmd	= CMD_STTS22_STATUS;
 		break;
-
-	default:
-		break;
 	}
 
 	if( Cmd.cmd == 0)

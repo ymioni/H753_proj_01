@@ -207,9 +207,6 @@ bool				BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd)
 			break;
 		}
 		break;
-
-	default:
-		break;
 	}
 
 	if( Cmd.cmd == 0)
