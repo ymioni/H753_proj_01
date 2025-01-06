@@ -38,6 +38,14 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef struct
+{
+	tBSP_PER_Target		target;
+	tBSP_PER_Func		func;
+	int16_t				arg1;
+	int16_t				arg2;
+	int16_t				arg3;
+} tQ_Sensor_Cmd;
 
 /* USER CODE END PTD */
 
@@ -78,7 +86,7 @@ static	void		BSP_Sensors_InitSensors( void);
 static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd);
 static	void		BSP_Sensors_Cb_GetData( tBSP_PER_DataResp* data);
 static	void		BSP_Sensors_Cb_Timer( void *argument);
-static	void		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func function, uint16_t arg1);
+static	void		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func function, uint16_t arg1, uint16_t arg2, uint16_t arg3);
 
 /* USER CODE END PFP */
 
@@ -110,7 +118,7 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	BSP_Sensors_Cb_Timer(NULL);	//	MUST call this BEFORE calling osTimerStart() (it's a timer's Cb function)
 
 	Main_Timer_idle	=	osTimerNew( BSP_Sensors_Cb_Timer, osTimerPeriodic, NULL, NULL);
-	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(3000));
+	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(50));
 }
 
 /**
@@ -139,6 +147,13 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 {
 	Main_Q_Cmd.target	= Cmd->Target;
 	Main_Q_Cmd.func		= Cmd->Function;
+
+	if( (Cmd->Function == eBSP_PER_FUNC_GET_REG) || (Cmd->Function == eBSP_PER_FUNC_SET_REG))
+	{
+		Main_Q_Cmd.arg1		= Cmd->Reg_addr;
+		Main_Q_Cmd.arg2		= Cmd->Reg_data;
+		Main_Q_Cmd.arg3		= (bool)(Cmd->Function == eBSP_PER_FUNC_SET_REG);
+	}
 
 	switch( Main_Q_Cmd.target)
 	{
@@ -226,6 +241,13 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 	Cmd.Target		=	cmd->target;
 	Cmd.Function	=	cmd->func;
 
+	if( (cmd->func == eBSP_PER_FUNC_GET_REG) || (cmd->func == eBSP_PER_FUNC_SET_REG))
+	{
+		Cmd.Reg_addr	= cmd->arg1;
+		Cmd.Reg_data	= cmd->arg2;
+		Cmd.Reg_set		= cmd->arg3;
+	}
+
 	switch(cmd->target)
 	{
 	case	eBSP_PER_TARGET_SHT40A:
@@ -297,24 +319,31 @@ static	void		BSP_Sensors_Cb_GetData( tBSP_PER_DataResp* data)
   */
 static	void		BSP_Sensors_Cb_Timer( void *argument)
 {
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_SHT40A,	eBSP_PER_FUNC_TEMP_RH,	eBSP_PER_PRCSN_HIGH);
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_STTS22,	eBSP_PER_FUNC_TEMP_RH,	0);
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LPS22D,	eBSP_PER_FUNC_GET_SN,	0);
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_TEMP_RH,	0);
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_GET_AXIS,	0);
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSV,	eBSP_PER_FUNC_GET_SN,	0);
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSO,	eBSP_PER_FUNC_GET_SN,	0);
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2DUX,	eBSP_PER_FUNC_GET_SN,	0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_SHT40A,	eBSP_PER_FUNC_TEMP_RH,	eBSP_PER_PRCSN_HIGH, 0, 0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_STTS22,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LPS22D,	eBSP_PER_FUNC_GET_SN,	0, 0, 0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_GET_AXIS,	0, 0, 0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSV,	eBSP_PER_FUNC_GET_SN,	0, 0, 0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSO,	eBSP_PER_FUNC_GET_SN,	0, 0, 0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2DUX,	eBSP_PER_FUNC_GET_SN,	0, 0, 0);
 }
 
 /**
   * @brief
   * @retval
   */
-static	void		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func function, uint16_t arg1)
+static	void		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func function, uint16_t arg1, uint16_t arg2, uint16_t arg3)
 {
 	tBSP_PER_DataCmd	Cmd	=	{	.Target		=	target,
 									.Function	=	function};
+
+	if( (function == eBSP_PER_FUNC_GET_REG) || (function == eBSP_PER_FUNC_SET_REG))
+	{
+		Cmd.Reg_addr	= arg1;
+		Cmd.Reg_data	= arg2;
+		Cmd.Reg_set		= arg3;
+	}
 
 	if( (target == eBSP_PER_TARGET_SHT40A) && (function == eBSP_PER_FUNC_TEMP_RH))
 		Cmd.Precision	= arg1;

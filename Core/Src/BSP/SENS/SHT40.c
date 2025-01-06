@@ -36,6 +36,7 @@ typedef	struct
 {
 	tCmd_SHT40		cmd;
 	bool			set;
+	uint8_t			reg_data;
 }tQ_Cmd;
 
 /* USER CODE END PTD */
@@ -53,22 +54,26 @@ typedef	struct
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-struct __PACKED
+static struct __PACKED
 {
 	uint16_t	Temperature;
 	uint8_t		CRC_Temperature;
 	uint16_t	Humidity;
 	uint8_t		CRC_Humidity;
-}Data_SHT40_Temp;
+}Data_Temp;
 
-struct __PACKED
+static struct __PACKED
 {
 	uint16_t	SN1;
 	uint8_t		CRC_Temperature;
 	uint16_t	SN2;
 	uint8_t		CRC_Humidity;
-}Data_SHT40_SN;
+}Data_SN;
 
+static struct __PACKED
+{
+	uint8_t		Data;
+}Data_Register;
 
 static	bool						Main_Q_Err			= false;
 static	tBSP_PER_Target				Main_Device			= eBSP_PER_TARGET_VOID;
@@ -92,6 +97,7 @@ static	tBSP_PER_DataResp			Main_Per_DataResp	= {0};
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
 static	bool		BSP_SHT40_Transaction(tQ_Cmd Rec);
+static	uint8_t		BSP_SHT40_Transaction_default(tQ_Cmd Rec);
 static	void		BSP_SHT40_Transaction_Tx(bool Rx, tCmd_SHT40 Cmd);
 static	void		BSP_SHT40_Transaction_Rx(void);
 static	bool		BSP_SHT40_Session(void);
@@ -207,6 +213,13 @@ bool				BSP_SHT40_Cmd( tBSP_PER_DataCmd	*cmd)
 			break;
 		}
 		break;
+	break;
+
+	default:
+	Cmd.cmd 		= cmd->Reg_addr;
+	Cmd.reg_data	= cmd->Reg_data;
+	Cmd.set			= cmd->Reg_set;
+	break;
 	}
 
 	if( Cmd.cmd == 0)
@@ -241,8 +254,8 @@ static	bool		BSP_SHT40_Transaction(tQ_Cmd Rec)
 	case	CMD_SHT40_GET_SN:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
 		Main_TxLen 	= idx;
-		Main_RxBuf	= (uint8_t *)&Data_SHT40_SN;
-		Main_RxLen	= sizeof(Data_SHT40_SN);
+		Main_RxBuf	= (uint8_t *)&Data_SN;
+		Main_RxLen	= sizeof(Data_SN);
 		break;
 
 	case	CMD_SHT40_RESET:
@@ -256,8 +269,8 @@ static	bool		BSP_SHT40_Transaction(tQ_Cmd Rec)
 	case	CMD_SHT40_GET_TEMP_RH_PRECISION_LO:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
 		Main_TxLen 	= idx;
-		Main_RxBuf	= (uint8_t *)&Data_SHT40_Temp;
-		Main_RxLen	= sizeof(Data_SHT40_Temp);
+		Main_RxBuf	= (uint8_t *)&Data_Temp;
+		Main_RxLen	= sizeof(Data_Temp);
 		break;
 
 	case	CMD_SHT40_HEATER_200MW_1000MSEC:
@@ -272,7 +285,7 @@ static	bool		BSP_SHT40_Transaction(tQ_Cmd Rec)
 		break;
 
 	default:
-		result = false;
+		Main_TxLen 	= BSP_SHT40_Transaction_default( Rec);
 		break;
 	}
 
@@ -291,6 +304,32 @@ static	bool		BSP_SHT40_Transaction(tQ_Cmd Rec)
 	return result;
 }
 
+/**
+  * @brief
+  * @retval
+  */
+static	uint8_t		BSP_SHT40_Transaction_default(tQ_Cmd Rec)
+{
+	uint8_t	idx = 0;
+
+	if( Rec.cmd < 0x100)
+		Main_TxBuf[idx ++]	=	Rec.cmd;
+	else
+	{
+		Main_TxBuf[idx ++]	=	(Rec.cmd >> 8);
+		Main_TxBuf[idx ++]	=	Rec.cmd >> 8;
+	}
+
+	if( Rec.set)
+		Main_TxBuf[idx ++]	=	Rec.reg_data;
+	else
+	{
+		Main_RxBuf	= (uint8_t *)&Data_Register;
+		Main_RxLen	= sizeof(Data_Register);
+	}
+
+	return idx;
+}
 /**
   * @brief
   * @retval
@@ -366,24 +405,29 @@ static	bool			BSP_SHT40_Transaction_SetData(tCmd_SHT40 Cmd)
 	switch( Cmd)
 	{
 	case	CMD_SHT40_GET_SN:
-		BSP_Util_SwapBytes(&Data_SHT40_SN.SN1, sizeof( Data_SHT40_SN.SN1));
-		BSP_Util_SwapBytes(&Data_SHT40_SN.SN2, sizeof( Data_SHT40_SN.SN2));
-		Main_Per_DataResp.SerialNumber	=	(((uint32_t)Data_SHT40_SN.SN1) << 16) + Data_SHT40_SN.SN2;
+		BSP_Util_SwapBytes(&Data_SN.SN1, sizeof( Data_SN.SN1));
+		BSP_Util_SwapBytes(&Data_SN.SN2, sizeof( Data_SN.SN2));
+		Main_Per_DataResp.SerialNumber	=	(((uint32_t)Data_SN.SN1) << 16) + Data_SN.SN2;
 		break;
 
 	case	CMD_SHT40_GET_TEMP_RH_PRECISION_HI:
 	case	CMD_SHT40_GET_TEMP_RH_PRECISION_MED:
 	case	CMD_SHT40_GET_TEMP_RH_PRECISION_LO:
-		BSP_Util_SwapBytes(&Data_SHT40_Temp.Temperature, sizeof( Data_SHT40_Temp.Temperature));
-		BSP_Util_SwapBytes(&Data_SHT40_Temp.Humidity, sizeof( Data_SHT40_Temp.Humidity));
-		Main_Per_DataResp.Temperature	=	BSP_Per_Convert(eBSP_PER_TARGET_SHT40A, eBSP_PER_FUNC_TEMP, Data_SHT40_Temp.Temperature);
-		Main_Per_DataResp.Humidity_f	=	BSP_Per_Convert(eBSP_PER_TARGET_SHT40A, eBSP_PER_FUNC_RH, Data_SHT40_Temp.Humidity);
+		BSP_Util_SwapBytes(&Data_Temp.Temperature, sizeof( Data_Temp.Temperature));
+		BSP_Util_SwapBytes(&Data_Temp.Humidity, sizeof( Data_Temp.Humidity));
+		Main_Per_DataResp.Temperature	=	BSP_Per_Convert(eBSP_PER_TARGET_SHT40A, eBSP_PER_FUNC_TEMP, Data_Temp.Temperature);
+		Main_Per_DataResp.Humidity_f	=	BSP_Per_Convert(eBSP_PER_TARGET_SHT40A, eBSP_PER_FUNC_RH, Data_Temp.Humidity);
 		Main_Per_DataResp.Humidity_i	=	Main_Per_DataResp.Humidity_f;
 		break;
 
 	default:
-		result = false;
-		break;
+		Main_Per_DataResp.Reg_addr	= Cmd;
+		Main_Per_DataResp.Reg_data	= Data_Register.Data;
+
+		printf("SHT40 (%.2x) | Reg: %.2X\n",
+					Main_Per_DataResp.Reg_addr,
+					Main_Per_DataResp.Reg_data);
+		return true;
 	}
 
 	printf("SHT40  | R: %d | SN: %lX T: %.2f RH: %d\n",

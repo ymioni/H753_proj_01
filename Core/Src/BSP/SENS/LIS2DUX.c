@@ -36,8 +36,8 @@ typedef	struct
 {
 	tCmd_LIS2DUX	cmd;
 	bool			set;
+	uint8_t			reg_data;
 }tQ_Cmd;
-
 
 /* USER CODE END PTD */
 
@@ -54,15 +54,15 @@ typedef	struct
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-struct __PACKED
+static struct __PACKED
 {
 	uint8_t		SN;
-}Data_LIS2DUX_SN;
+}Data_SN;
 
-struct __PACKED
+static struct __PACKED
 {
-	uint8_t		Status;
-}Data_LIS2DUX_Status;
+	uint8_t		Data;
+}Data_Register;
 
 static	bool						Main_Q_Err			= false;
 static	tBSP_PER_Target				Main_Device			= eBSP_PER_TARGET_VOID;
@@ -86,6 +86,7 @@ static	tBSP_PER_DataResp			Main_Per_DataResp	= {0};
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
 static	bool		BSP_LIS2DUX_Transaction(tQ_Cmd Rec);
+static	uint8_t		BSP_LIS2DUX_Transaction_default(tQ_Cmd Rec);
 static	void		BSP_LIS2DUX_Transaction_Tx(bool Rx, tCmd_LIS2DUX Cmd);
 static	void		BSP_LIS2DUX_Transaction_Rx(void);
 static	bool		BSP_LIS2DUX_Session(void);
@@ -155,6 +156,12 @@ bool				BSP_LIS2DUX_Cmd( tBSP_PER_DataCmd	*cmd)
 	case	eBSP_PER_FUNC_GET_SN:
 		Cmd.cmd	= CMD_LIS2DUX_GET_SN;
 		break;
+
+	default:
+		Cmd.cmd 		= cmd->Reg_addr;
+		Cmd.reg_data	= cmd->Reg_data;
+		Cmd.set			= cmd->Reg_set;
+		break;
 	}
 
 	if( Cmd.cmd == 0)
@@ -189,12 +196,12 @@ static	bool		BSP_LIS2DUX_Transaction(tQ_Cmd Rec)
 	case	CMD_LIS2DUX_GET_SN:
 		Main_TxBuf[idx ++]	=	Rec.cmd;
 		Main_TxLen 	= idx;
-		Main_RxBuf	= (uint8_t *)&Data_LIS2DUX_SN;
-		Main_RxLen	= sizeof(Data_LIS2DUX_SN);
+		Main_RxBuf	= (uint8_t *)&Data_SN;
+		Main_RxLen	= sizeof(Data_SN);
 		break;
 
 	default:
-		result = false;
+		Main_TxLen 	= BSP_LIS2DUX_Transaction_default( Rec);
 		break;
 	}
 
@@ -211,6 +218,33 @@ static	bool		BSP_LIS2DUX_Transaction(tQ_Cmd Rec)
 	}
 
 	return result;
+}
+
+/**
+  * @brief
+  * @retval
+  */
+static	uint8_t		BSP_LIS2DUX_Transaction_default(tQ_Cmd Rec)
+{
+	uint8_t	idx = 0;
+
+	if( Rec.cmd < 0x100)
+		Main_TxBuf[idx ++]	=	Rec.cmd;
+	else
+	{
+		Main_TxBuf[idx ++]	=	(Rec.cmd >> 8);
+		Main_TxBuf[idx ++]	=	Rec.cmd >> 8;
+	}
+
+	if( Rec.set)
+		Main_TxBuf[idx ++]	=	Rec.reg_data;
+	else
+	{
+		Main_RxBuf	= (uint8_t *)&Data_Register;
+		Main_RxLen	= sizeof(Data_Register);
+	}
+
+	return idx;
 }
 
 /**
@@ -275,12 +309,17 @@ static	bool		BSP_LIS2DUX_Transaction_SetData(tCmd_LIS2DUX Cmd)
 	switch( Cmd)
 	{
 	case	CMD_LIS2DUX_GET_SN:
-		Main_Per_DataResp.SerialNumber = Main_RxBuf[0];
+		Main_Per_DataResp.SerialNumber = Data_SN.SN;
 		break;
 
 	default:
-		result = false;
-		break;
+		Main_Per_DataResp.Reg_addr	= Cmd;
+		Main_Per_DataResp.Reg_data	= Data_Register.Data;
+
+		printf("LIS2DUX (%.2X) | Reg: %.2X\n",
+					Main_Per_DataResp.Reg_addr,
+					Main_Per_DataResp.Reg_data);
+		return true;
 	}
 
 	printf("LIS2DUX | R: %d | SN: %lX T: %.2f RH: %d\n",
