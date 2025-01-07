@@ -220,7 +220,7 @@ bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd)
 
 		Main_Device	= cmd->Target;
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
-		if( (Main_Q_Err == false) && (msgs > 12))
+		if( (Main_Q_Err == false) && (msgs > 10))
 		{
 			Main_Q_Err	= true;
 			BSP_Sensors_SetErr( cmd->Target, eBSP_SENS_ERR_Q_LVL, BSP_SET);

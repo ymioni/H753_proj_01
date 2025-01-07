@@ -77,6 +77,7 @@ static	QueueHandle_t				Main_Q;
 static	tQ_Sensor_Cmd				Main_Q_Cmd;
 
 static	osTimerId_t					Main_Timer_idle;
+static	bool						Main_Pause = false;
 
 /* USER CODE END PV */
 
@@ -151,6 +152,12 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 {
 	Main_Q_Cmd.target	= Cmd->Target;
 	Main_Q_Cmd.func		= Cmd->Function;
+
+	if((Cmd->Target == eBSP_PER_TARGET_VOID) && (Cmd->Function == eBSP_PER_FUNC_VOID))
+		Main_Pause ^= true;
+
+	if( Main_Pause)
+		return;
 
 	if( (Cmd->Function == eBSP_PER_FUNC_GET_REG) || (Cmd->Function == eBSP_PER_FUNC_SET_REG))
 	{

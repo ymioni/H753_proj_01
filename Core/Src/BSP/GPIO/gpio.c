@@ -155,9 +155,8 @@ GPIO_TypeDef*	Port = NULL;
 				printf("Blue button pressed\n");
 
 				{
-					tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_SHT40A,
-													.Function	=	eBSP_PER_FUNC_TEMP_RH,
-													.Precision	=	eBSP_PER_PRCSN_HIGH};
+					tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_VOID,
+													.Function	=	eBSP_PER_FUNC_VOID};
 					BSP_Sensors_Cmd( &Cmd, true);
 				}
 			}
