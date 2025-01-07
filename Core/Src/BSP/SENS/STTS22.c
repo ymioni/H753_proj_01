@@ -163,6 +163,10 @@ void 				task_STTS22( void *arguments)
 			Main_Q_Err	= false;
 			BSP_Sensors_SetErr( Main_Device, eBSP_SENS_ERR_Q_LVL, BSP_CLEAR);
 		}
+#ifdef	MY_DEBUG
+	cnt2ok[3]	++;
+	val[3]	= msgs;
+#endif
 
 		BSP_STTS22_Transaction(Cmd);
 	}
@@ -217,7 +221,8 @@ bool				BSP_STTS22_Cmd( tBSP_PER_DataCmd	*cmd)
 		result = false;
 	else
 	{
-		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		osStatus_t	status;
+		status	= osMessageQueuePut(Main_Q, &Cmd, 0, 0);
 
 		Main_Device	= cmd->Target;
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
@@ -226,6 +231,11 @@ bool				BSP_STTS22_Cmd( tBSP_PER_DataCmd	*cmd)
 			Main_Q_Err	= true;
 			BSP_Sensors_SetErr( cmd->Target, eBSP_SENS_ERR_Q_LVL, BSP_SET);
 		}
+#ifdef	MY_DEBUG
+	if( status == osOK)		cnt2ok[2]	++;
+	else					cnt2er[2]	++;
+	val[2]	= msgs;
+#endif
 	}
 
 	return	result;

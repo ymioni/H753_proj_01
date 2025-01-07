@@ -175,6 +175,10 @@ void 				task_LSM6DSO( void *arguments)
 			Main_Q_Err	= false;
 			BSP_Sensors_SetErr( Main_Device, eBSP_SENS_ERR_Q_LVL, BSP_CLEAR);
 		}
+#ifdef	MY_DEBUG
+	cnt2ok[11]	++;
+	val[11]	= msgs;
+#endif
 
 		BSP_LSM6DSO_Transaction(Cmd);
 	}
@@ -211,7 +215,8 @@ bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd)
 		result = false;
 	else
 	{
-		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		osStatus_t	status;
+		status	= osMessageQueuePut(Main_Q, &Cmd, 0, 0);
 
 		Main_Device	= cmd->Target;
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
@@ -220,6 +225,11 @@ bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd)
 			Main_Q_Err	= true;
 			BSP_Sensors_SetErr( cmd->Target, eBSP_SENS_ERR_Q_LVL, BSP_SET);
 		}
+#ifdef	MY_DEBUG
+	if( status == osOK)		cnt2ok[10]	++;
+	else					cnt2er[10]	++;
+	val[10]	= msgs;
+#endif
 	}
 
 	return	result;

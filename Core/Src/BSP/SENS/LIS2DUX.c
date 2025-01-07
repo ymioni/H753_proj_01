@@ -136,6 +136,10 @@ void 				task_LIS2DUX( void *arguments)
 			Main_Q_Err	= false;
 			BSP_Sensors_SetErr( Main_Device, eBSP_SENS_ERR_Q_LVL, BSP_CLEAR);
 		}
+#ifdef	MY_DEBUG
+	cnt2ok[13]	++;
+	val[13]	= msgs;
+#endif
 
 		BSP_LIS2DUX_Transaction(Cmd);
 	}
@@ -168,7 +172,8 @@ bool				BSP_LIS2DUX_Cmd( tBSP_PER_DataCmd	*cmd)
 		result = false;
 	else
 	{
-		osMessageQueuePut(Main_Q, &Cmd, 0, 0);
+		osStatus_t	status;
+		status	= osMessageQueuePut(Main_Q, &Cmd, 0, 0);
 
 		Main_Device	= cmd->Target;
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
@@ -177,6 +182,11 @@ bool				BSP_LIS2DUX_Cmd( tBSP_PER_DataCmd	*cmd)
 			Main_Q_Err	= true;
 			BSP_Sensors_SetErr( cmd->Target, eBSP_SENS_ERR_Q_LVL, BSP_SET);
 		}
+#ifdef	MY_DEBUG
+	if( status == osOK)		cnt2ok[12]	++;
+	else					cnt2er[12]	++;
+	val[12]	= msgs;
+#endif
 	}
 
 	return	result;

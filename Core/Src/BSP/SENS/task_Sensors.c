@@ -118,7 +118,7 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	BSP_Sensors_Cb_Timer(NULL);	//	MUST call this BEFORE calling osTimerStart() (it's a timer's Cb function)
 
 	Main_Timer_idle	=	osTimerNew( BSP_Sensors_Cb_Timer, osTimerPeriodic, NULL, NULL);
-	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(50));
+	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(10));
 }
 
 /**
@@ -134,6 +134,10 @@ void 				task_Sensors( void *arguments)
 		osDelay(1);
 
 		xQueueReceive( Main_Q, &Cmd, portMAX_DELAY);
+
+#ifdef	MY_DEBUG
+	val2[4]	++;
+#endif
 
 		BSP_Sensors_TxCmd2Sensor(&Cmd);
 	}
@@ -188,14 +192,27 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 		break;
 	}
 
+	BaseType_t	result;
 	if( FromISR)
 	{
 		BaseType_t xHigherPriorityTaskWoken;
 		xHigherPriorityTaskWoken = pdFALSE;
-		xQueueSendFromISR( Main_Q, &Main_Q_Cmd, &xHigherPriorityTaskWoken );
+		result	= xQueueSendFromISR( Main_Q, &Main_Q_Cmd, &xHigherPriorityTaskWoken );
+
+#ifdef	MY_DEBUG
+		if( result == pdTRUE)	val2[2]	++;
+		else					val2[3]	++;
+#endif
 	}
 	else
-		xQueueSend( Main_Q, &Main_Q_Cmd, portMAX_DELAY);
+	{
+		result	= xQueueSend( Main_Q, &Main_Q_Cmd, portMAX_DELAY);
+
+#ifdef	MY_DEBUG
+		if( result == pdTRUE)	val2[0]	++;
+		else					val2[1]	++;
+#endif
+	}
 }
 
 /**

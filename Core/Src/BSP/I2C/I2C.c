@@ -90,6 +90,9 @@ void 				task_I2C( void *arguments)
 		osDelay(1); // Consider whether this is necessary.
 
 		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
+#ifdef	MY_DEBUG
+		cnt1ok[4]	++;
+#endif
 
 		BSP_I2C_Session(Cmd);
 	}
@@ -104,10 +107,19 @@ bool				BSP_I2C_Cmd( tBSP_I2C_Session Cmd)
 	osStatus_t	status;
 
 	status	= osMutexAcquire( Main_Mtx, pdMS_TO_TICKS( 30));
+#ifdef	MY_DEBUG
+	if( status == osOK)		cnt1ok[0]	++;
+	else					cnt1er[0]	++;
+#endif
 
 	if( status == osOK)
 	{
 		status	= osMessageQueuePut(Main_Q, &Cmd, 0, pdMS_TO_TICKS( 20));
+#ifdef	MY_DEBUG
+		if( status == osOK)		cnt1ok[1]	++;
+		else					cnt1er[1]	++;
+#endif
+
 		osMutexRelease( Main_Mtx);
 	}
 
@@ -127,6 +139,10 @@ static	bool		BSP_I2C_Session( tBSP_I2C_Session Cmd)
 
 	HAL_result = HAL_I2C_Master_Transmit_IT(Cmd.i2cHandle, Cmd.Address, Cmd.TxBuf, Cmd.TxLen);
 	ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50)); // will be released by HAL_I2C_MasterTxCpltCallback()::vTaskNotifyGiveFromISR
+#ifdef	MY_DEBUG
+	if( HAL_result == HAL_OK)	cnt1ok[2]	++;
+	else						cnt1er[2]	++;
+#endif
 
 	vTaskDelay(Cmd.DelayAfterTx);
 
@@ -134,6 +150,11 @@ static	bool		BSP_I2C_Session( tBSP_I2C_Session Cmd)
 	{
 		HAL_result = HAL_I2C_Master_Receive_IT(Cmd.i2cHandle, Cmd.Address, Cmd.RxBuf, Cmd.RxLen);
 		ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50)); // will be released by HAL_I2C_MasterRxCpltCallback()::vTaskNotifyGiveFromISR
+#ifdef	MY_DEBUG
+		if( HAL_result == HAL_OK)	cnt1ok[3]	++;
+		else						cnt1er[3]	++;
+#endif
+
 		vTaskDelay(Cmd.DelayAfterRx);
 	}
 
@@ -147,6 +168,10 @@ void				HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *handle)
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
 	vTaskNotifyGiveFromISR(Main_taskHandle, &xHigherPriorityTaskWoken);
+
+#ifdef	MY_DEBUG
+	cnt1ok[5]	++;
+#endif
 }
 
 void				HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *handle)
@@ -154,6 +179,10 @@ void				HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *handle)
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
 	vTaskNotifyGiveFromISR(Main_taskHandle, &xHigherPriorityTaskWoken);
+
+#ifdef	MY_DEBUG
+	cnt1ok[6]	++;
+#endif
 }
 
 void				HAL_I2C_ErrorCallback(I2C_HandleTypeDef *handle)
@@ -161,6 +190,10 @@ void				HAL_I2C_ErrorCallback(I2C_HandleTypeDef *handle)
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
 	vTaskNotifyGiveFromISR(Main_taskHandle, &xHigherPriorityTaskWoken);
+
+#ifdef	MY_DEBUG
+	cnt1er[4]	++;
+#endif
 }
 
 /* USER CODE END 4 */
