@@ -52,6 +52,7 @@ extern "C" {
 /* Private function prototypes -----------------------------------------------*/
 
 /* USER CODE BEGIN PFP */
+static float		BSP_Per_Temp2sComplement( int16_t Value);
 
 /* USER CODE END PFP */
 
@@ -101,13 +102,28 @@ float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32
 		switch( Function)
 		{
 		case	eBSP_PER_FUNC_TEMP:
-		result = 25.0 + ((int16_t)Value / 0x100);
+		result = BSP_Per_Temp2sComplement( Value);
 		break;
+		}
+		break;
+
+		case eBSP_PER_TARGET_LSM6DSV:
+		case eBSP_PER_TARGET_LSM6DSO:
+		switch( Function)
+		{
+			case	eBSP_PER_FUNC_TEMP:
+			result = BSP_Per_Temp2sComplement( Value);
+			break;
 		}
 		break;
 	}
 
 	return result;
+}
+
+static float		BSP_Per_Temp2sComplement( int16_t Value)
+{
+	return( 25.0 + (Value / 256.0));
 }
 
 #ifdef __cplusplus

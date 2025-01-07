@@ -29,6 +29,10 @@
 typedef	enum
 {
 	CMD_LSM6DSO_GET_SN						=	0x0F,
+	CMD_LSM6DSO_CTRL1						=	0x10,
+	CMD_LSM6DSO_CTRL2						=	0x11,
+	CMD_LSM6DSO_CTRL3						=	0x12,
+	CMD_LSM6DSO_TEMP_L						=	0x20,
 }tCmd_LSM6DSO;
 
 typedef	void(*tCb_GetData_LSM6DSO)(tBSP_PER_DataResp *Data);

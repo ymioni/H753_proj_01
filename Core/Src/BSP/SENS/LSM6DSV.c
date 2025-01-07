@@ -56,6 +56,11 @@ typedef	struct
 /* USER CODE BEGIN PV */
 static struct __PACKED
 {
+	uint16_t	Temperature;
+}Data_Temp;
+
+static struct __PACKED
+{
 	uint8_t		SN;
 }Data_SN;
 
@@ -110,8 +115,42 @@ void				BSP_LSM6DSV_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc)
 	Main_Q	= osMessageQueueNew(16, sizeof(tQ_Cmd), &Q_attributes);
 
 	{
-		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSV,
-										.Function	=	eBSP_PER_FUNC_GET_SN};
+		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSV};
+
+		Cmd.Function	=	eBSP_PER_FUNC_GET_SN;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
+		Cmd.Reg_addr	= CMD_LSM6DSV_CTRL1;
+		Cmd.Reg_data	= 0x60;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
+		Cmd.Reg_addr	= CMD_LSM6DSV_CTRL2;
+		Cmd.Reg_data	= 0x60;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
+		Cmd.Reg_addr	= CMD_LSM6DSV_CTRL3;
+		Cmd.Reg_data	= 0x04;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+		Cmd.Function	= eBSP_PER_FUNC_GET_REG;
+		Cmd.Reg_addr	= CMD_LSM6DSV_CTRL1;
+		Cmd.Reg_data	= 0x60;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+		Cmd.Function	= eBSP_PER_FUNC_GET_REG;
+		Cmd.Reg_addr	= CMD_LSM6DSV_CTRL2;
+		Cmd.Reg_data	= 0x60;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+		Cmd.Function	= eBSP_PER_FUNC_GET_REG;
+		Cmd.Reg_addr	= CMD_LSM6DSV_CTRL3;
+		Cmd.Reg_data	= 0x04;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+		Cmd.Function	= eBSP_PER_FUNC_TEMP_RH;
 		BSP_Sensors_Cmd( &Cmd, false);
 	}
 }
@@ -157,6 +196,10 @@ bool				BSP_LSM6DSV_Cmd( tBSP_PER_DataCmd	*cmd)
 		Cmd.cmd	= CMD_LSM6DSV_GET_SN;
 		break;
 
+	case	eBSP_PER_FUNC_TEMP_RH:
+		Cmd.cmd = CMD_LSM6DSV_TEMP_L;
+		break;
+
 	default:
 		Cmd.cmd 		= cmd->Reg_addr;
 		Cmd.reg_data	= cmd->Reg_data;
@@ -198,6 +241,13 @@ static	bool		BSP_LSM6DSV_Transaction(tQ_Cmd Rec)
 		Main_TxLen 	= idx;
 		Main_RxBuf	= (uint8_t *)&Data_SN;
 		Main_RxLen	= sizeof(Data_SN);
+		break;
+
+	case	CMD_LSM6DSV_TEMP_L:
+		Main_TxBuf[idx ++]	=	Rec.cmd;
+		Main_TxLen 	= idx;
+		Main_RxBuf	= (uint8_t *)&Data_Temp;
+		Main_RxLen	= sizeof(Data_Temp);
 		break;
 
 	default:
@@ -308,7 +358,11 @@ static	bool		BSP_LSM6DSV_Transaction_SetData(tCmd_LSM6DSV Cmd)
 	switch( Cmd)
 	{
 	case	CMD_LSM6DSV_GET_SN:
-		Main_Per_DataResp.SerialNumber = Main_RxBuf[0];
+		Main_Per_DataResp.SerialNumber = Data_SN.SN;
+		break;
+
+	case	CMD_LSM6DSV_TEMP_L:
+		Main_Per_DataResp.Temperature = BSP_Per_Convert(eBSP_PER_TARGET_LSM6DSV, eBSP_PER_FUNC_TEMP, Data_Temp.Temperature);
 		break;
 
 	default:
