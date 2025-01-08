@@ -220,7 +220,7 @@ bool				BSP_LSM6DSV_Cmd( tBSP_PER_DataCmd	*cmd)
 
 		Main_Device	= cmd->Target;
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
-		if( (Main_Q_Err == false) && (msgs > 10))
+		if( (Main_Q_Err == false) && (msgs > 12))
 		{
 			Main_Q_Err	= true;
 			BSP_Sensors_SetErr( cmd->Target, eBSP_SENS_ERR_Q_LVL, BSP_SET);
@@ -379,17 +379,21 @@ static	bool		BSP_LSM6DSV_Transaction_SetData(tCmd_LSM6DSV Cmd)
 		Main_Per_DataResp.Reg_addr	= Cmd;
 		Main_Per_DataResp.Reg_data	= Data_Register.Data;
 
+#ifdef MY_DEBUG_PRINTF
 		printf("LSM6DSV (%.2x) | Reg: %.2X\n",
 					Main_Per_DataResp.Reg_addr,
 					Main_Per_DataResp.Reg_data);
+#endif
 		return true;
 	}
 
+#ifdef MY_DEBUG_PRINTF
 	printf("LSM6DSV | R: %d | SN: %lX T: %.2f RH: %d\n",
 				result,
 				Main_Per_DataResp.SerialNumber,
 				Main_Per_DataResp.Temperature,
 				Main_Per_DataResp.Humidity_i);
+#endif
 
 	return result;
 }

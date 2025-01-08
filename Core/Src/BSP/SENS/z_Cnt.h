@@ -43,6 +43,9 @@ extern	uint32_t	cnt1er[8];
 extern	uint32_t	cnt2ok[14];
 extern	uint32_t	cnt2er[14];
 
+extern	uint32_t	cnt3ok[8];
+extern	uint32_t	cnt3er[8];
+
 extern	uint32_t	val[14];
 extern	uint32_t	val2[6];
 

@@ -77,7 +77,7 @@ osThreadId_t task_SensorsHandle;
 const osThreadAttr_t task_Sensors_attributes = {
   .name = "task_Sensors",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityBelowNormal,
+  .priority = (osPriority_t) osPriorityLow,
 };
 
 osThreadId_t task_SHT40Handle;

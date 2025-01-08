@@ -218,7 +218,7 @@ bool				BSP_LIS2MDL_Cmd( tBSP_PER_DataCmd	*cmd)
 
 		Main_Device	= cmd->Target;
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
-		if( (Main_Q_Err == false) && (msgs > 10))
+		if( (Main_Q_Err == false) && (msgs > 12))
 		{
 			Main_Q_Err	= true;
 			BSP_Sensors_SetErr( cmd->Target, eBSP_SENS_ERR_Q_LVL, BSP_SET);
@@ -398,18 +398,22 @@ static	bool		BSP_LIS2MDL_Transaction_SetData(tCmd_LIS2MDL Cmd)
 	{
 	case	CMD_LIS2MDL_GET_SN:
 	case	CMD_LIS2MDL_TEMP_L:
+#ifdef MY_DEBUG_PRINTF
 		printf("LIS2MDL | R: %d | SN: %lX T: %.2f RH: %d\n",
 					result,
 					Main_Per_DataResp.SerialNumber,
 					Main_Per_DataResp.Temperature,
 					Main_Per_DataResp.Humidity_i);
+#endif
 		break;
 
 	case	CMD_LIS2MDL_GET_AXIS:
+#ifdef MY_DEBUG_PRINTF
 		printf("LIS2MDL Axis | X: %d Y: %d Z: %d\n",
 					Main_Per_DataResp.Axis[0],
 					Main_Per_DataResp.Axis[1],
 					Main_Per_DataResp.Axis[2]);
+#endif
 		break;
 	}
 

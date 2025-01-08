@@ -84,10 +84,10 @@ static	bool						Main_Pause = false;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
 static	void		BSP_Sensors_InitSensors( void);
-static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd);
+static	bool		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd);
 static	void		BSP_Sensors_Cb_GetData( tBSP_PER_DataResp* data);
 static	void		BSP_Sensors_Cb_Timer( void *argument);
-static	void		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func function, uint16_t arg1, uint16_t arg2, uint16_t arg3);
+static	bool		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func function, uint16_t arg1, uint16_t arg2, uint16_t arg3);
 
 /* USER CODE END PFP */
 
@@ -199,6 +199,18 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 		break;
 	}
 
+	// no target or no function
+	if((Cmd->Target == eBSP_PER_TARGET_VOID) || (Cmd->Function == eBSP_PER_FUNC_VOID))
+	{
+#ifdef	MY_DEBUG
+		cnt3er[2]	++;
+#endif
+		return;
+	}
+#ifdef	MY_DEBUG
+	cnt3ok[2]	++;
+#endif
+
 	osStatus_t	status;
 	if( FromISR)
 	{
@@ -232,7 +244,7 @@ void				BSP_Sensors_SetErr( tBSP_PER_Target Source, tBSP_SENS_ErrCode ErrCode, b
 	switch( ErrCode)
 	{
 	case	eBSP_SENS_ERR_Q_LVL:
-		Main_Targets[Source].err_Q_Lvl = (Set == BSP_SET) ? true : false;
+		Main_Targets[Source].err_Q_Lvl = Set;
 		break;
 	}
 }
@@ -256,9 +268,20 @@ static	void		BSP_Sensors_InitSensors( void)
   * @brief
   * @retval
   */
-static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
+static	bool		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 {
 	tBSP_PER_DataCmd	Cmd = {0};
+
+	if( Main_Targets[cmd->target].err_Q_Lvl == true)
+	{
+#ifdef	MY_DEBUG
+		cnt3er[0]	++;
+#endif
+		return false;
+	}
+#ifdef	MY_DEBUG
+	cnt3ok[0]	++;
+#endif
 
 	Cmd.Target		=	cmd->target;
 	Cmd.Function	=	cmd->func;
@@ -324,6 +347,8 @@ static	void		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 		BSP_LIS2DUX_Cmd(&Cmd);
 		break;
 	}
+
+	return true;
 }
 
 /**
@@ -355,10 +380,21 @@ static	void		BSP_Sensors_Cb_Timer( void *argument)
   * @brief
   * @retval
   */
-static	void		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func function, uint16_t arg1, uint16_t arg2, uint16_t arg3)
+static	bool		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func function, uint16_t arg1, uint16_t arg2, uint16_t arg3)
 {
 	tBSP_PER_DataCmd	Cmd	=	{	.Target		=	target,
 									.Function	=	function};
+
+	if( Main_Targets[target].err_Q_Lvl == true)
+	{
+#ifdef	MY_DEBUG
+		cnt3er[1]	++;
+#endif
+		return false;
+	}
+#ifdef	MY_DEBUG
+	cnt3ok[1]	++;
+#endif
 
 	if( (function == eBSP_PER_FUNC_GET_REG) || (function == eBSP_PER_FUNC_SET_REG))
 	{
@@ -370,8 +406,9 @@ static	void		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func
 	if( (target == eBSP_PER_TARGET_SHT40A) && (function == eBSP_PER_FUNC_TEMP_RH))
 		Cmd.Precision	= arg1;
 
-	if( Main_Targets[target].err_Q_Lvl == false) // either sensor signals for Queue nearly ovf
-		BSP_Sensors_Cmd( &Cmd, false);
+	BSP_Sensors_Cmd( &Cmd, false);
+
+	return true;
 }
 
 /* USER CODE END 4 */

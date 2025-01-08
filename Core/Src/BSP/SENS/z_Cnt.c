@@ -47,6 +47,9 @@ uint32_t	cnt1er[8];
 uint32_t	cnt2ok[14];
 uint32_t	cnt2er[14];
 
+uint32_t	cnt3ok[8];
+uint32_t	cnt3er[8];
+
 uint32_t	val[14];
 uint32_t	val2[6];
 /* USER CODE END PV */
