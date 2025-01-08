@@ -182,6 +182,8 @@ bool				BSP_LPS22D_Cmd( tBSP_PER_DataCmd	*cmd)
 			Main_Q_Err	= true;
 			BSP_Sensors_SetErr( cmd->Target, eBSP_SENS_ERR_Q_LVL, BSP_SET);
 		}
+		result = (status == osOK);
+
 #ifdef	MY_DEBUG
 	if( status == osOK)		cnt2ok[4]	++;
 	else					cnt2er[4]	++;

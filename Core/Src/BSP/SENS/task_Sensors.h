@@ -58,7 +58,7 @@ typedef	enum
 /* USER CODE BEGIN PFP */
 void				BSP_Sensors_Init( I2C_HandleTypeDef *handle);
 void 				task_Sensors( void *arguments);
-void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR);
+bool				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR);
 void				BSP_Sensors_SetErr( tBSP_PER_Target Source, tBSP_SENS_ErrCode ErrCode, bool Set);
 /* USER CODE END PFP */
 

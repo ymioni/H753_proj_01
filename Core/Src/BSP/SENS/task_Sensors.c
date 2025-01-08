@@ -148,7 +148,7 @@ void 				task_Sensors( void *arguments)
   * @brief
   * @retval
   */
-void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
+bool				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 {
 	Main_Q_Cmd.target	= Cmd->Target;
 	Main_Q_Cmd.func		= Cmd->Function;
@@ -157,7 +157,7 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 		Main_Pause ^= true;
 
 	if( Main_Pause)
-		return;
+		return false;
 
 	if( (Cmd->Function == eBSP_PER_FUNC_GET_REG) || (Cmd->Function == eBSP_PER_FUNC_SET_REG))
 	{
@@ -205,7 +205,7 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 #ifdef	MY_DEBUG
 		cnt3er[2]	++;
 #endif
-		return;
+		return false;
 	}
 #ifdef	MY_DEBUG
 	cnt3ok[2]	++;
@@ -230,6 +230,8 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 		else				val2[1]	++;
 #endif
 	}
+
+	return( status == osOK);
 }
 
 /**
