@@ -22,7 +22,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "cmsis_os.h"
-#include "queue.h"
 #include "..\PER\Peripherals.h"
 #include "..\Util\Util.h"
 #include "..\RespCodes.h"
@@ -73,7 +72,8 @@ struct
 	bool					err_Q_Lvl;
 }Main_Targets[eBSP_PER_MAX_VALUE_TARGET] = {0};
 
-static	QueueHandle_t				Main_Q;
+static	osMessageQueueId_t 			Main_Q;
+static	const osMessageQueueAttr_t	Q_attributes	= {	.name = "Q_Sensors"};
 static	tQ_Sensor_Cmd				Main_Q_Cmd;
 
 static	osTimerId_t					Main_Timer_idle;
@@ -113,7 +113,7 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	Main_Targets[eBSP_PER_TARGET_LSM6DSO].handle	= Main_Info.hI2C;
 	Main_Targets[eBSP_PER_TARGET_LIS2DUX].handle	= Main_Info.hI2C;
 
-	Main_Q	= xQueueCreate( 32, sizeof(tQ_Sensor_Cmd));
+	Main_Q	= osMessageQueueNew(32, sizeof(tQ_Sensor_Cmd), &Q_attributes);
 
 	BSP_Sensors_InitSensors();
 	BSP_Sensors_Cb_Timer(NULL);	//	MUST call this BEFORE calling osTimerStart() (it's a timer's Cb function)
@@ -134,7 +134,7 @@ void 				task_Sensors( void *arguments)
 	{
 		osDelay(1);
 
-		xQueueReceive( Main_Q, &Cmd, portMAX_DELAY);
+		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
 
 #ifdef	MY_DEBUG
 	val2[4]	++;
@@ -199,25 +199,23 @@ void				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 		break;
 	}
 
-	BaseType_t	result;
+	osStatus_t	status;
 	if( FromISR)
 	{
-		BaseType_t xHigherPriorityTaskWoken;
-		xHigherPriorityTaskWoken = pdFALSE;
-		result	= xQueueSendFromISR( Main_Q, &Main_Q_Cmd, &xHigherPriorityTaskWoken );
+		status	= osMessageQueuePut(Main_Q, &Cmd, 0, 0); // ISR! timeout MUST be 0
 
 #ifdef	MY_DEBUG
-		if( result == pdTRUE)	val2[2]	++;
-		else					val2[3]	++;
+		if( status == osOK)	val2[2]	++;
+		else				val2[3]	++;
 #endif
 	}
 	else
 	{
-		result	= xQueueSend( Main_Q, &Main_Q_Cmd, portMAX_DELAY);
+		status	= osMessageQueuePut(Main_Q, &Main_Q_Cmd, 0, osWaitForever);
 
 #ifdef	MY_DEBUG
-		if( result == pdTRUE)	val2[0]	++;
-		else					val2[1]	++;
+		if( status == osOK)	val2[0]	++;
+		else				val2[1]	++;
 #endif
 	}
 }
