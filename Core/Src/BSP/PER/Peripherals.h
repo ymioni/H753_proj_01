@@ -66,9 +66,11 @@ typedef	enum
 	eBSP_PER_FUNC_SET_CTRL		,		//	7
 	eBSP_PER_FUNC_GET_STATUS	,		//	8
 	eBSP_PER_FUNC_RESET			,		//	9
-	eBSP_PER_FUNC_GET_AXIS		,		//	10
-	eBSP_PER_FUNC_GET_REG		,		//	11
-	eBSP_PER_FUNC_SET_REG		,		//	12
+	eBSP_PER_FUNC_GET_REG		,		//	10
+	eBSP_PER_FUNC_SET_REG		,		//	11
+	eBSP_PER_FUNC_GET_GYRO		,		//	12
+	eBSP_PER_FUNC_GET_ACCL		,		//	13
+	eBSP_PER_FUNC_GET_GYRO_ACCL	,		//	14
 	/***** DON'T CROSS THIS LINE *****/
 	eBSP_PER_MAX_VALUE_FUNC				//
 }tBSP_PER_Func;
@@ -130,9 +132,23 @@ typedef struct
 	uint32_t			SerialNumber;
 	uint8_t				Control;
 	uint8_t				Status;
-	int16_t				Axis[3];
 	uint8_t				Reg_addr;
 	uint8_t				Reg_data;
+	struct __PACKED
+	{
+		struct
+		{
+			float		X;
+			float		Y;
+			float		Z;
+		}Gyro;
+		struct
+		{
+			float		X;
+			float		Y;
+			float		Z;
+		}Accl;
+	}Data_GyroAccl;
 }tBSP_PER_DataResp;
 /* USER CODE END ET */
 
@@ -151,6 +167,7 @@ typedef	void(*tCb_Sensor_GetData)(tBSP_PER_DataResp *Data);
 /* Exported functions prototypes ---------------------------------------------*/
 /* USER CODE BEGIN EFP */
 float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32_t Value);
+float				BSP_Per_Convert_XLG( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32_t Value, float factor, uint16_t divider);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

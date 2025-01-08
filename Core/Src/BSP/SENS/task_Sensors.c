@@ -372,9 +372,10 @@ static	void		BSP_Sensors_Cb_Timer( void *argument)
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_STTS22,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LPS22D,	eBSP_PER_FUNC_GET_SN,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_GET_AXIS,	0, 0, 0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_GET_ACCL,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSV,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSO,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSO,	eBSP_PER_FUNC_GET_GYRO_ACCL,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2DUX,	eBSP_PER_FUNC_GET_SN,	0, 0, 0);
 }
 
@@ -386,6 +387,8 @@ static	bool		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func
 {
 	tBSP_PER_DataCmd	Cmd	=	{	.Target		=	target,
 									.Function	=	function};
+	if( Main_Pause)
+		return false;
 
 	if( Main_Targets[target].err_Q_Lvl == true)
 	{

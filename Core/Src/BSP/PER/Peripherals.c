@@ -53,6 +53,7 @@ extern "C" {
 
 /* USER CODE BEGIN PFP */
 static float		BSP_Per_Temp2sComplement( int16_t Value);
+static float		BSP_Per_XLG( int16_t Value, float factor, uint16_t divider);
 
 /* USER CODE END PFP */
 
@@ -107,8 +108,8 @@ float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32
 		}
 		break;
 
-		case eBSP_PER_TARGET_LSM6DSV:
-		case eBSP_PER_TARGET_LSM6DSO:
+	case eBSP_PER_TARGET_LSM6DSV:
+	case eBSP_PER_TARGET_LSM6DSO:
 		switch( Function)
 		{
 			case	eBSP_PER_FUNC_TEMP:
@@ -121,9 +122,58 @@ float				BSP_Per_Convert( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32
 	return result;
 }
 
+/**
+  * @brief Accelerometer, Gyroscope
+  * @retval
+  */
+float				BSP_Per_Convert_XLG( tBSP_PER_Target Target, tBSP_PER_Func Function, uint32_t Value, float factor, uint16_t divider)
+{
+    float result = 0.0;
+
+    if( divider == 0)
+    {
+    	return 0.0;
+    }
+
+	switch( Target)
+	{
+	case eBSP_PER_TARGET_LSM6DSV:
+	case eBSP_PER_TARGET_LSM6DSO:
+		switch( Function)
+		{
+			case	eBSP_PER_FUNC_GET_GYRO:
+			result = BSP_Per_XLG( Value, factor, divider);
+			break;
+
+			case	eBSP_PER_FUNC_GET_ACCL:
+			result = BSP_Per_XLG( Value, factor, divider);
+			break;
+		}
+		break;
+	}
+
+	return result;
+}
+
+/**
+  * @brief
+  * @retval
+  */
 static float		BSP_Per_Temp2sComplement( int16_t Value)
 {
 	return( 25.0 + (Value / 256.0));
+}
+
+/**
+  * @brief
+  * @retval
+  */
+static float		BSP_Per_XLG( int16_t Value, float factor, uint16_t divider)
+{
+    if( divider == 0)
+    	return 0.0;
+
+    return( (Value * factor) / divider);
 }
 
 #ifdef __cplusplus

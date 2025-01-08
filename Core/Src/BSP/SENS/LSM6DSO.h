@@ -29,10 +29,16 @@
 typedef	enum
 {
 	CMD_LSM6DSO_GET_SN						=	0x0F,
-	CMD_LSM6DSO_CTRL1						=	0x10,
-	CMD_LSM6DSO_CTRL2						=	0x11,
-	CMD_LSM6DSO_CTRL3						=	0x12,
-	CMD_LSM6DSO_TEMP_L						=	0x20,
+	CMD_LSM6DSO_CTRL1_XL					=	0x10,
+	CMD_LSM6DSO_CTRL2_G						=	0x11,
+	CMD_LSM6DSO_CTRL3_C						=	0x12,
+	CMD_LSM6DSO_TEMP_L						=	0x20,	// + 0x21
+	CMD_LSM6DSO_GYRO_X_L					=	0x22,	// + 0x23
+	CMD_LSM6DSO_GYRO_Y_L					=	0x24,	// + 0x25
+	CMD_LSM6DSO_GYRO_Z_L					=	0x26,	// + 0x27
+	CMD_LSM6DSO_ACCL_X_L					=	0x28,	// + 0x29
+	CMD_LSM6DSO_ACCL_Y_L					=	0x2A,	// + 0x2B
+	CMD_LSM6DSO_ACCL_Z_L					=	0x2C,	// + 0x2D
 }tCmd_LSM6DSO;
 
 typedef	void(*tCb_GetData_LSM6DSO)(tBSP_PER_DataResp *Data);

@@ -61,13 +61,6 @@ static struct __PACKED
 
 static struct __PACKED
 {
-	int16_t		OutX;
-	int16_t		OutY;
-	int16_t		OutZ;
-}Data_Axis;
-
-static struct __PACKED
-{
 	uint16_t	Temperature;
 }Data_Temp;
 
@@ -194,10 +187,6 @@ bool				BSP_LIS2MDL_Cmd( tBSP_PER_DataCmd	*cmd)
 		Cmd.cmd	= CMD_LIS2MDL_GET_SN;
 		break;
 
-	case	eBSP_PER_FUNC_GET_AXIS:
-		Cmd.cmd	= CMD_LIS2MDL_GET_AXIS;
-		break;
-
 	case	eBSP_PER_FUNC_TEMP_RH:
 		Cmd.cmd	= CMD_LIS2MDL_TEMP_L;
 		break;
@@ -251,13 +240,6 @@ static	bool		BSP_LIS2MDL_Transaction(tQ_Cmd Rec)
 		Main_TxLen 	= idx;
 		Main_RxBuf	= (uint8_t *)&Data_SN;
 		Main_RxLen	= sizeof(Data_SN);
-		break;
-
-	case	CMD_LIS2MDL_GET_AXIS:
-		Main_TxBuf[idx ++]	=	Rec.cmd;
-		Main_TxLen 	= idx;
-		Main_RxBuf	= (uint8_t *)&Data_Axis;
-		Main_RxLen	= sizeof(Data_Axis);
 		break;
 
 	case	CMD_LIS2MDL_TEMP_L:
@@ -378,10 +360,6 @@ static	bool		BSP_LIS2MDL_Transaction_SetData(tCmd_LIS2MDL Cmd)
 		Main_Per_DataResp.SerialNumber = Main_RxBuf[0];
 		break;
 
-	case	CMD_LIS2MDL_GET_AXIS:
-		memcpy(Main_Per_DataResp.Axis, Main_RxBuf, sizeof(Data_Axis));
-		break;
-
 	case	CMD_LIS2MDL_TEMP_L:
 		Main_Per_DataResp.Temperature = BSP_Per_Convert(eBSP_PER_TARGET_LIS2MDL, eBSP_PER_FUNC_TEMP, Data_Temp.Temperature);
 		break;
@@ -406,15 +384,6 @@ static	bool		BSP_LIS2MDL_Transaction_SetData(tCmd_LIS2MDL Cmd)
 					Main_Per_DataResp.SerialNumber,
 					Main_Per_DataResp.Temperature,
 					Main_Per_DataResp.Humidity_i);
-#endif
-		break;
-
-	case	CMD_LIS2MDL_GET_AXIS:
-#ifdef MY_DEBUG_PRINTF
-		printf("LIS2MDL Axis | X: %d Y: %d Z: %d\n",
-					Main_Per_DataResp.Axis[0],
-					Main_Per_DataResp.Axis[1],
-					Main_Per_DataResp.Axis[2]);
 #endif
 		break;
 	}

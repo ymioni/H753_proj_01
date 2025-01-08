@@ -43,6 +43,19 @@ typedef	struct
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define	MAX_FULLSCALE_GYRO		4
+#define	MAX_FULLSCALE_ACCL		4
+const	float	FullScale_Accl[MAX_FULLSCALE_ACCL]	=
+				{	0.061,	//	+/- 2 g		(CTRL1_XL [3:2])
+					0.122,	//	+/-	4 g
+					0.244,	//	+/-	8 g
+					0.488};	//	+/-	16 g
+
+const	float	FullScale_Gyro[MAX_FULLSCALE_GYRO]	=
+				{	8.75,	//	+/- 250 dps	(CTRL2_G [3:2])
+					17.5,	//	+/-	500	dps
+					35.0,	//	+/-	1000 dps
+					70.0};	//	+/-	2000 dps
 
 /* USER CODE END PD */
 
@@ -69,6 +82,22 @@ static struct __PACKED
 	uint8_t		Data;
 }Data_Register;
 
+static struct __PACKED
+{
+	struct
+	{
+		int16_t	X;
+		int16_t	Y;
+		int16_t	Z;
+	}Gyro;
+	struct
+	{
+		int16_t	X;
+		int16_t	Y;
+		int16_t	Z;
+	}Accl;
+}Data_GyroAccl;
+
 static	bool						Main_Q_Err			= false;
 static	tBSP_PER_Target				Main_Device			= eBSP_PER_TARGET_VOID;
 static	osMessageQueueId_t 			Main_Q;
@@ -85,6 +114,9 @@ static	uint8_t *					Main_RxBuf			= NULL;
 static	uint8_t 					Main_RxLen			= 0;
 static	tBSP_I2C_Session			Main_Session		= {0};
 static	tBSP_PER_DataResp			Main_Per_DataResp	= {0};
+
+static	uint8_t						Main_Gyro_idx		= 0;
+static	uint8_t						Main_Accl_idx		= 0;
 
 /* USER CODE END PV */
 
@@ -121,34 +153,31 @@ void				BSP_LSM6DSO_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc)
 		BSP_Sensors_Cmd( &Cmd, false);
 
 		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
-		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL1;
+		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL1_XL;
 		Cmd.Reg_data	= 0x60;
 		BSP_Sensors_Cmd( &Cmd, false);
 
 		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
-		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL2;
+		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL2_G;
 		Cmd.Reg_data	= 0x60;
 		BSP_Sensors_Cmd( &Cmd, false);
 
 		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
-		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL3;
+		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL3_C;
 		Cmd.Reg_data	= 0x04;
 		BSP_Sensors_Cmd( &Cmd, false);
 
-//		Cmd.Function	= eBSP_PER_FUNC_GET_REG;
-//		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL1;
-//		Cmd.Reg_data	= 0x60;
-//		BSP_Sensors_Cmd( &Cmd, false);
-//
-//		Cmd.Function	= eBSP_PER_FUNC_GET_REG;
-//		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL2;
-//		Cmd.Reg_data	= 0x60;
-//		BSP_Sensors_Cmd( &Cmd, false);
-//
-//		Cmd.Function	= eBSP_PER_FUNC_GET_REG;
-//		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL3;
-//		Cmd.Reg_data	= 0x04;
-//		BSP_Sensors_Cmd( &Cmd, false);
+		Cmd.Function	= eBSP_PER_FUNC_GET_REG;
+		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL1_XL;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+		Cmd.Function	= eBSP_PER_FUNC_GET_REG;
+		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL2_G;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+		Cmd.Function	= eBSP_PER_FUNC_GET_REG;
+		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL3_C;
+		BSP_Sensors_Cmd( &Cmd, false);
 
 		Cmd.Function	= eBSP_PER_FUNC_TEMP_RH;
 		BSP_Sensors_Cmd( &Cmd, false);
@@ -202,6 +231,12 @@ bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd)
 
 	case	eBSP_PER_FUNC_TEMP_RH:
 		Cmd.cmd = CMD_LSM6DSO_TEMP_L;
+		break;
+
+	case	eBSP_PER_FUNC_GET_GYRO:
+	case	eBSP_PER_FUNC_GET_ACCL:
+	case	eBSP_PER_FUNC_GET_GYRO_ACCL:
+		Cmd.cmd = CMD_LSM6DSO_GYRO_X_L;
 		break;
 
 	default:
@@ -260,6 +295,13 @@ static	bool		BSP_LSM6DSO_Transaction(tQ_Cmd Rec)
 		Main_TxLen 	= idx;
 		Main_RxBuf	= (uint8_t *)&Data_Temp;
 		Main_RxLen	= sizeof(Data_Temp);
+		break;
+
+	case	CMD_LSM6DSO_GYRO_X_L:
+		Main_TxBuf[idx ++]	=	Rec.cmd;
+		Main_TxLen 	= idx;
+		Main_RxBuf	= (uint8_t *)&Data_GyroAccl;
+		Main_RxLen	= sizeof(Data_GyroAccl);
 		break;
 
 	default:
@@ -375,27 +417,65 @@ static	bool		BSP_LSM6DSO_Transaction_SetData(tCmd_LSM6DSO Cmd)
 
 	case	CMD_LSM6DSO_TEMP_L:
 		Main_Per_DataResp.Temperature = BSP_Per_Convert(eBSP_PER_TARGET_LSM6DSO, eBSP_PER_FUNC_TEMP, Data_Temp.Temperature);
+
+#ifdef MY_DEBUG_PRINTF
+		printf("LSM6DSO | R: %d | SN: %lX T: %.2f RH: %d\n",
+				result,
+				Main_Per_DataResp.SerialNumber,
+				Main_Per_DataResp.Temperature,
+				Main_Per_DataResp.Humidity_i);
+#endif
+		break;
+
+	case	CMD_LSM6DSO_GYRO_X_L:
+		tBSP_PER_Target		Target		= eBSP_PER_TARGET_LSM6DSO;
+		tBSP_PER_Func 		Function;
+		float 				factor;
+		uint16_t 			divider		= 1000;
+
+		if( Main_Gyro_idx >= MAX_FULLSCALE_GYRO)	Main_Gyro_idx	= 0;
+		if( Main_Accl_idx >= MAX_FULLSCALE_ACCL)	Main_Accl_idx	= 0;
+
+		Function	= eBSP_PER_FUNC_GET_GYRO;
+		factor		= FullScale_Gyro[Main_Gyro_idx];
+		Main_Per_DataResp.Data_GyroAccl.Gyro.X	= BSP_Per_Convert_XLG( Target, Function, Data_GyroAccl.Gyro.X, factor, divider);
+		Main_Per_DataResp.Data_GyroAccl.Gyro.Y	= BSP_Per_Convert_XLG( Target, Function, Data_GyroAccl.Gyro.Y, factor, divider);
+		Main_Per_DataResp.Data_GyroAccl.Gyro.Z	= BSP_Per_Convert_XLG( Target, Function, Data_GyroAccl.Gyro.Z, factor, divider);
+
+		Function	= eBSP_PER_FUNC_GET_ACCL;
+		factor		= FullScale_Accl[Main_Accl_idx];
+		Main_Per_DataResp.Data_GyroAccl.Accl.X	= BSP_Per_Convert_XLG( Target, Function, Data_GyroAccl.Accl.X, factor, divider);
+		Main_Per_DataResp.Data_GyroAccl.Accl.Y	= BSP_Per_Convert_XLG( Target, Function, Data_GyroAccl.Accl.Y, factor, divider);
+		Main_Per_DataResp.Data_GyroAccl.Accl.Z	= BSP_Per_Convert_XLG( Target, Function, Data_GyroAccl.Accl.Z, factor, divider);
+
+#ifdef MY_DEBUG_PRINTF
+		printf("LSM6DSO | Gyro: (X: %.2f Y: %.2f Z: %.2f) | Accl: (X: %.2f Y: %.2f Z: %.2f)\n",
+				Main_Per_DataResp.Data_GyroAccl.Gyro.X,
+				Main_Per_DataResp.Data_GyroAccl.Gyro.Y,
+				Main_Per_DataResp.Data_GyroAccl.Gyro.Z,
+				Main_Per_DataResp.Data_GyroAccl.Accl.X,
+				Main_Per_DataResp.Data_GyroAccl.Accl.Y,
+				Main_Per_DataResp.Data_GyroAccl.Accl.Z);
+#endif
 		break;
 
 	default:
 		Main_Per_DataResp.Reg_addr	= Cmd;
 		Main_Per_DataResp.Reg_data	= Data_Register.Data;
 
+		if( Cmd == CMD_LSM6DSO_CTRL1_XL)
+			Main_Accl_idx	= (Main_Per_DataResp.Reg_data >> 2) & (0x03); // Reg 0x10[3:2]
+
+		if( Cmd == CMD_LSM6DSO_CTRL2_G)
+			Main_Gyro_idx	= (Main_Per_DataResp.Reg_data >> 2) & (0x03); // Reg 0x11[3:2]
+
 #ifdef MY_DEBUG_PRINTF
 		printf("LSM6DSO (%.2x) | Reg: %.2X\n",
-					Main_Per_DataResp.Reg_addr,
-					Main_Per_DataResp.Reg_data);
+				Main_Per_DataResp.Reg_addr,
+				Main_Per_DataResp.Reg_data);
 #endif
 		return true;
 	}
-
-#ifdef MY_DEBUG_PRINTF
-	printf("LSM6DSO | R: %d | SN: %lX T: %.2f RH: %d\n",
-				result,
-				Main_Per_DataResp.SerialNumber,
-				Main_Per_DataResp.Temperature,
-				Main_Per_DataResp.Humidity_i);
-#endif
 
 	return result;
 }
