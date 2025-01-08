@@ -113,7 +113,7 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	Main_Targets[eBSP_PER_TARGET_LSM6DSO].handle	= Main_Info.hI2C;
 	Main_Targets[eBSP_PER_TARGET_LIS2DUX].handle	= Main_Info.hI2C;
 
-	Main_Q	= xQueueCreate( 64, sizeof(tQ_Sensor_Cmd));
+	Main_Q	= xQueueCreate( 32, sizeof(tQ_Sensor_Cmd));
 
 	BSP_Sensors_InitSensors();
 	BSP_Sensors_Cb_Timer(NULL);	//	MUST call this BEFORE calling osTimerStart() (it's a timer's Cb function)
