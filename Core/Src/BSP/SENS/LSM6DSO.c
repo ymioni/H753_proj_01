@@ -43,14 +43,22 @@ typedef	struct
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define	MAX_FULLSCALE_GYRO		4
 #define	MAX_FULLSCALE_ACCL		4
+// sensitivity: mg/LSB
+// search for Linear acceleration sensitivity in datasheet
+// value = (g * 1000) / (64K / 2)
+// 1000mg = (g * 1000); 64K is the resolution of 16bits; 64K/2 for 2's complement (+/- g)
+// examples: 	+/- 2g >> 2000mg / 32768 = 0.061 LSB (each bit is very precise, range limited to +/- 2g)
+// 				+/- 8g >> 8000mg / 32768 = 0.244 LSB (each bit is coarse, range expanded to +/- 8g)
 const	float	FullScale_Accl[MAX_FULLSCALE_ACCL]	=
 				{	0.061,	//	+/- 2 g		(CTRL1_XL [3:2])
 					0.122,	//	+/-	4 g
 					0.244,	//	+/-	8 g
 					0.488};	//	+/-	16 g
 
+#define	MAX_FULLSCALE_GYRO		4
+// sensitivity: mdps/LSB (dps = degrees per second)
+// search for Angular rate sensitivity table in datasheet
 const	float	FullScale_Gyro[MAX_FULLSCALE_GYRO]	=
 				{	8.75,	//	+/- 250 dps	(CTRL2_G [3:2])
 					17.5,	//	+/-	500	dps

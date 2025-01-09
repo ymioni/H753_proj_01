@@ -72,6 +72,7 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
+/* USER CODE BEGIN PV */
 
 osThreadId_t task_SensorsHandle;
 const osThreadAttr_t task_Sensors_attributes = {
@@ -136,7 +137,6 @@ const osThreadAttr_t task_I2C_attributes = {
   .priority = (osPriority_t) osPriorityHigh,
 };
 
-/* USER CODE BEGIN PV */
 static	uint8_t	Usart_RxBuf[64];
 static	uint8_t	Usart_RxBufIdx = 0;
 static	bool	Usart_RxBufIgnore = false;
@@ -269,7 +269,7 @@ int main(void)
 
   /* Create the thread(s) */
   /* creation of defaultTask */
-  defaultTaskHandle 	= osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   task_I2CHandle		= osThreadNew(task_I2C, NULL, &task_I2C_attributes);
