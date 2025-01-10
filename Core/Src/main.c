@@ -77,7 +77,7 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t task_SensorsHandle;
 const osThreadAttr_t task_Sensors_attributes = {
   .name = "task_Sensors",
-  .stack_size = 128 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 
@@ -98,35 +98,35 @@ const osThreadAttr_t task_STTS22_attributes = {
 osThreadId_t task_LPS22DHandle;
 const osThreadAttr_t task_LPS22D_attributes = {
   .name = "task_LPS22D",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
 osThreadId_t task_LIS2MDLHandle;
 const osThreadAttr_t task_LIS2MDL_attributes = {
   .name = "task_LIS2MDL",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
 osThreadId_t task_LSM6DSVHandle;
 const osThreadAttr_t task_LSM6DSV_attributes = {
   .name = "task_LSM6DSV",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
 osThreadId_t task_LSM6DSOHandle;
 const osThreadAttr_t task_LSM6DSO_attributes = {
   .name = "task_LSM6DSO",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
 osThreadId_t task_LIS2DUXHandle;
 const osThreadAttr_t task_LIS2DUX_attributes = {
   .name = "task_LIS2DUX",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
@@ -227,11 +227,11 @@ int main(void)
   BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_ON, 0);
   HAL_Delay(1000);
   BSP_LED_Start(eBSP_LED_2_YELLOW, eBSP_LED_PATTERN_ON, 0);
-  HAL_Delay(1000);
+  HAL_Delay(500);
   BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_OFF, 0);
   BSP_LED_Start(eBSP_LED_2_YELLOW, eBSP_LED_PATTERN_OFF, 0);
   BSP_LED_Start(eBSP_LED_3_GREEN, eBSP_LED_PATTERN_ON, 0);
-  HAL_Delay(2000);
+  HAL_Delay(500);
   BSP_LED_Start(eBSP_LED_3_GREEN, eBSP_LED_PATTERN_OFF, 0);
 //  BSP_LED_Start(eBSP_LED_1_RED, eBSP_LED_PATTERN_ON, 0);
   BSP_LED_MainStart();
@@ -280,7 +280,7 @@ int main(void)
   task_LIS2MDLHandle	= osThreadNew(task_LIS2MDL, NULL, &task_LIS2MDL_attributes);
   task_LSM6DSVHandle	= osThreadNew(task_LSM6DSV, NULL, &task_LSM6DSV_attributes);
   task_LSM6DSOHandle	= osThreadNew(task_LSM6DSO, NULL, &task_LSM6DSO_attributes);
-  task_LIS2DUXHandle	= osThreadNew(task_LIS2DUX, NULL, &task_LSM6DSO_attributes);
+  task_LIS2DUXHandle	= osThreadNew(task_LIS2DUX, NULL, &task_LIS2DUX_attributes);
 
   /* USER CODE END RTOS_THREADS */
 
