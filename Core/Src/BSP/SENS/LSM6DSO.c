@@ -112,6 +112,8 @@ static	osMessageQueueId_t 			Main_Q;
 static	const osMessageQueueAttr_t	Q_attributes		= {	.name = "Q_LSM6DSO"};
 static	I2C_HandleTypeDef*			Main_Handle 		= NULL;
 static	tCb_Sensor_GetData			Main_CbFunc			= NULL;
+static	osMutexId_t 				Main_Mtx;
+static	const osMutexAttr_t			Mtx_attributes		= {	.name = "M_LSM6DSO"};
 
 static	uint16_t					Main_Timeout		= 50;
 static	uint16_t					Main_Delay 			= 5;
@@ -125,13 +127,13 @@ static	tBSP_PER_DataResp			Main_Per_DataResp	= {0};
 
 static	uint8_t						Main_Gyro_idx		= 0;
 static	uint8_t						Main_Accl_idx		= 0;
-static	bool						Main_PostInit		= true;
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-static	void		BSP_LSM6DSO_PostInit( void);
+static	void		BSP_LSM6DSO_PostInit_1( void);
+static	void		BSP_LSM6DSO_PostInit_2( void);
 static	bool		BSP_LSM6DSO_Transaction(tQ_Cmd Rec);
 static	uint8_t		BSP_LSM6DSO_Transaction_default(tQ_Cmd Rec);
 static	void		BSP_LSM6DSO_Transaction_Tx(bool Rx, tCmd_LSM6DSO Cmd);
@@ -154,42 +156,45 @@ void				BSP_LSM6DSO_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc)
 	Main_Handle = handle;
 	Main_CbFunc	= CbFunc;
 
+	Main_Mtx	= osMutexNew(&Mtx_attributes);
+
 	Main_Q	= osMessageQueueNew(16, sizeof(tQ_Cmd), &Q_attributes);
+
+	BSP_GPIO_Set_Cb_INT1( BSP_LSM6DSO_Cb_INT1);
 
 	{
 		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSO};
 
+		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
+		Cmd.Reg_addr	= CMD_LSM6DSO_INT1_CTRL; // Disable INT1 activation (prevent triggering INT1 till it's relevant)
+		Cmd.Reg_data	= 0x00;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
+		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL3_C;
+		Cmd.Reg_data	= 0x81;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+/*		This section is reserved for cases of using special ISPU settings
+//		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
+//		Cmd.Reg_addr	= CMD_LSM6DSO_FUNC_CFG_ACCESS;
+//		Cmd.Reg_data	= 0x02;
+//		BSP_Sensors_Cmd( &Cmd, false);
+//
+//		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
+//		Cmd.Reg_addr	= CMD_LSM6DSO_FUNC_CFG_ACCESS;
+//		Cmd.Reg_data	= 0x00;
+//		BSP_Sensors_Cmd( &Cmd, false);
+		End of section */
+
 		Cmd.Function	=	eBSP_PER_FUNC_GET_SN;
 		BSP_Sensors_Cmd( &Cmd, false);
 
-		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
-		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL1_XL;
-		Cmd.Reg_data	= 0x60;
-		BSP_Sensors_Cmd( &Cmd, false);
-
-		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
-		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL2_G;
-		Cmd.Reg_data	= 0x60;
-		BSP_Sensors_Cmd( &Cmd, false);
-
-		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
-		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL3_C;
-		Cmd.Reg_data	= 0x04;
-		BSP_Sensors_Cmd( &Cmd, false);
-
-		Cmd.Function	= eBSP_PER_FUNC_GET_REG;
-		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL1_XL;
-		BSP_Sensors_Cmd( &Cmd, false);
-
-		Cmd.Function	= eBSP_PER_FUNC_GET_REG;
-		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL2_G;
-		BSP_Sensors_Cmd( &Cmd, false);
-
-		Cmd.Function	= eBSP_PER_FUNC_GET_REG;
-		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL3_C;
-		BSP_Sensors_Cmd( &Cmd, false);
-
 		Cmd.Function	= eBSP_PER_FUNC_TEMP_RH;
+		BSP_Sensors_Cmd( &Cmd, false);
+
+		Cmd.Function	= eBSP_PER_FUNC_SPECIAL_1;
+		Cmd.idx			= 1;
 		BSP_Sensors_Cmd( &Cmd, false);
 	}
 }
@@ -202,12 +207,6 @@ void 				task_LSM6DSO( void *arguments)
 {
 	tQ_Cmd Cmd;
 
-	if( Main_PostInit)
-	{
-		Main_PostInit	= false;
-		BSP_LSM6DSO_PostInit();
-	}
-
 	while (1)
 	{
 		osDelay(1); // Consider whether this is necessary.
@@ -215,6 +214,7 @@ void 				task_LSM6DSO( void *arguments)
 		osMessageQueueGet(Main_Q, &Cmd, NULL, osWaitForever);
 
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
+
 		if( (Main_Q_Err == true) && (msgs < 4))
 		{
 			Main_Q_Err	= false;
@@ -229,8 +229,26 @@ void 				task_LSM6DSO( void *arguments)
 	}
 }
 
+/**
+  * @brief
+  * @retval
+  */
+void				BSP_LSM6DSO_Cb_INT1( tBSP_PER_DataCmd* cmd)
+{
+	tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSO};
+
+	Cmd.Function	= eBSP_PER_FUNC_GET_GYRO_ACCL;
+	if( Main_Q_Err == false)
+		BSP_LSM6DSO_Cmd( &Cmd);
+}
+
 bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd)
 {
+	// WARNING! This function is mutex-protected! (see gpio, task_Sensors)
+	// NO mid-return from this point !!!
+
+	osMutexAcquire( Main_Mtx, osWaitForever);
+
 	tQ_Cmd	Cmd = {0};
 	bool	result = true;
 
@@ -255,6 +273,19 @@ bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd)
 		Cmd.cmd = CMD_LSM6DSO_GYRO_X_L;
 		break;
 
+	case	eBSP_PER_FUNC_SPECIAL_1:
+		switch( cmd->idx)
+		{
+		case	1:
+			BSP_LSM6DSO_PostInit_1();
+			break;
+
+		case	2:
+			BSP_LSM6DSO_PostInit_2();
+			break;
+		}
+		break;
+
 	default:
 		Cmd.cmd 		= cmd->Reg_addr;
 		Cmd.reg_data	= cmd->Reg_data;
@@ -271,6 +302,7 @@ bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd)
 
 		Main_Device	= cmd->Target;
 		uint8_t	msgs = osMessageQueueGetCount(Main_Q);
+
 		if( (Main_Q_Err == false) && (msgs > 12))
 		{
 			Main_Q_Err	= true;
@@ -285,6 +317,8 @@ bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd)
 #endif
 	}
 
+	osMutexRelease( Main_Mtx);
+
 	return	result;
 }
 
@@ -292,27 +326,54 @@ bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd)
   * @brief
   * @retval
   */
-static	void		BSP_LSM6DSO_PostInit( void)
+static	void		BSP_LSM6DSO_PostInit_1( void)
+{
+	tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSO};
+
+	Cmd.Function	= eBSP_PER_FUNC_SET_REG;
+	Cmd.Reg_addr	= CMD_LSM6DSO_CTRL1_XL;
+	Cmd.Reg_data	= 0x60;
+	BSP_Sensors_Cmd( &Cmd, false);
+	Main_Accl_idx	=	Cmd.Reg_data;
+
+	Cmd.Function	= eBSP_PER_FUNC_SET_REG;
+	Cmd.Reg_addr	= CMD_LSM6DSO_CTRL2_G;
+	Cmd.Reg_data	= 0x60;
+	BSP_Sensors_Cmd( &Cmd, false);
+	Main_Gyro_idx	= Cmd.Reg_data;
+
+	Cmd.Function	= eBSP_PER_FUNC_SET_REG;
+	Cmd.Reg_addr	= CMD_LSM6DSO_CTRL3_C;
+	Cmd.Reg_data	= 0x04;
+	BSP_Sensors_Cmd( &Cmd, false);
+
+	Cmd.Function	= eBSP_PER_FUNC_SPECIAL_1;
+	Cmd.idx			= 2;
+	BSP_Sensors_Cmd( &Cmd, false);
+}
+
+/**
+  * @brief
+  * @retval
+  */
+static	void		BSP_LSM6DSO_PostInit_2( void)
 {
 	tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSO};
 
 	// Set Interrupt mode
 	Cmd.Function	= eBSP_PER_FUNC_SET_REG;
-	Cmd.Reg_addr	= CMD_LSM6DSO_INT1_CTRL;
-	Cmd.Reg_data	= 0x03;
-	BSP_Sensors_Cmd( &Cmd, false);
-
-	Cmd.Function	= eBSP_PER_FUNC_GET_REG;
-	Cmd.Reg_addr	= CMD_LSM6DSO_INT1_CTRL;
+	Cmd.Reg_addr	= CMD_LSM6DSO_DRDY_PULSED_RED;
+	Cmd.Reg_data	= 0x80;
 	BSP_Sensors_Cmd( &Cmd, false);
 
 	Cmd.Function	= eBSP_PER_FUNC_SET_REG;
 	Cmd.Reg_addr	= CMD_LSM6DSO_MD1_CFG;
-	Cmd.Reg_data	= 0x02;
+	Cmd.Reg_data	= 0x00;
 	BSP_Sensors_Cmd( &Cmd, false);
 
-	Cmd.Function	= eBSP_PER_FUNC_GET_REG;
-	Cmd.Reg_addr	= CMD_LSM6DSO_MD1_CFG;
+	Cmd.Function	= eBSP_PER_FUNC_SET_REG;
+	Cmd.Reg_addr	= CMD_LSM6DSO_INT1_CTRL; // Beyond this point, INT1 starts activating
+	Cmd.Reg_data	= 0x03;
 	BSP_Sensors_Cmd( &Cmd, false);
 }
 
@@ -462,13 +523,13 @@ static	bool		BSP_LSM6DSO_Transaction_SetData(tCmd_LSM6DSO Cmd)
 	case	CMD_LSM6DSO_TEMP_L:
 		Main_Per_DataResp.Temperature = BSP_Per_Convert(eBSP_PER_TARGET_LSM6DSO, eBSP_PER_FUNC_TEMP, Data_Temp.Temperature);
 
-#ifdef MY_DEBUG_PRINTF
+//#ifdef MY_DEBUG_PRINTF
 		printf("LSM6DSO | R: %d | SN: %lX T: %.2f RH: %d\n",
 				result,
 				Main_Per_DataResp.SerialNumber,
 				Main_Per_DataResp.Temperature,
 				Main_Per_DataResp.Humidity_i);
-#endif
+//#endif
 		break;
 
 	case	CMD_LSM6DSO_GYRO_X_L:
@@ -492,7 +553,7 @@ static	bool		BSP_LSM6DSO_Transaction_SetData(tCmd_LSM6DSO Cmd)
 		Main_Per_DataResp.Data_GyroAccl.Accl.Y	= BSP_Per_Convert_XLG( Target, Function, Data_GyroAccl.Accl.Y, factor, divider);
 		Main_Per_DataResp.Data_GyroAccl.Accl.Z	= BSP_Per_Convert_XLG( Target, Function, Data_GyroAccl.Accl.Z, factor, divider);
 
-#ifdef MY_DEBUG_PRINTF
+//#ifdef MY_DEBUG_PRINTF
 		printf("LSM6DSO | Gyro: (X: %.2f Y: %.2f Z: %.2f) | Accl: (X: %.2f Y: %.2f Z: %.2f)\n",
 				Main_Per_DataResp.Data_GyroAccl.Gyro.X,
 				Main_Per_DataResp.Data_GyroAccl.Gyro.Y,
@@ -500,7 +561,7 @@ static	bool		BSP_LSM6DSO_Transaction_SetData(tCmd_LSM6DSO Cmd)
 				Main_Per_DataResp.Data_GyroAccl.Accl.X,
 				Main_Per_DataResp.Data_GyroAccl.Accl.Y,
 				Main_Per_DataResp.Data_GyroAccl.Accl.Z);
-#endif
+//#endif
 		break;
 
 	default:
@@ -513,11 +574,11 @@ static	bool		BSP_LSM6DSO_Transaction_SetData(tCmd_LSM6DSO Cmd)
 		if( Cmd == CMD_LSM6DSO_CTRL2_G)
 			Main_Gyro_idx	= (Main_Per_DataResp.Reg_data >> 2) & (0x03); // Reg 0x11[3:2]
 
-//#ifdef MY_DEBUG_PRINTF
+#ifdef MY_DEBUG_PRINTF
 		printf("LSM6DSO (%.2X) | Reg: %.2X\n",
 				Main_Per_DataResp.Reg_addr,
 				Main_Per_DataResp.Reg_data);
-//#endif
+#endif
 		return true;
 	}
 

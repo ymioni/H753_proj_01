@@ -113,7 +113,7 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	Main_Targets[eBSP_PER_TARGET_LSM6DSO].handle	= Main_Info.hI2C;
 	Main_Targets[eBSP_PER_TARGET_LIS2DUX].handle	= Main_Info.hI2C;
 
-	Main_Q	= osMessageQueueNew(32, sizeof(tQ_Sensor_Cmd), &Q_attributes);
+	Main_Q	= osMessageQueueNew(48, sizeof(tQ_Sensor_Cmd), &Q_attributes);
 
 	BSP_Sensors_InitSensors();
 	BSP_Sensors_Cb_Timer(NULL);	//	MUST call this BEFORE calling osTimerStart() (it's a timer's Cb function)
@@ -164,6 +164,11 @@ bool				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 		Main_Q_Cmd.arg1		= Cmd->Reg_addr;
 		Main_Q_Cmd.arg2		= Cmd->Reg_data;
 		Main_Q_Cmd.arg3		= (bool)(Cmd->Function == eBSP_PER_FUNC_SET_REG);
+	}
+
+	if( Cmd->Function == eBSP_PER_FUNC_SPECIAL_1)
+	{
+		Main_Q_Cmd.arg1		= Cmd->idx;
 	}
 
 	switch( Main_Q_Cmd.target)
@@ -295,6 +300,11 @@ static	bool		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
 		Cmd.Reg_set		= cmd->arg3;
 	}
 
+	if( cmd->func == eBSP_PER_FUNC_SPECIAL_1)
+	{
+		Cmd.idx			= cmd->arg1;
+	}
+
 	switch(cmd->target)
 	{
 	case	eBSP_PER_TARGET_SHT40A:
@@ -374,9 +384,8 @@ static	void		BSP_Sensors_Cb_Timer( void *argument)
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSV,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSO,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
-//	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSO,	eBSP_PER_FUNC_GET_GYRO_ACCL,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2DUX,	eBSP_PER_FUNC_GET_SN,	0, 0, 0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSO,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
 }
 
 /**

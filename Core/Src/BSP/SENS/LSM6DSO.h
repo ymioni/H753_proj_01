@@ -28,6 +28,8 @@
 /* USER CODE BEGIN PTD */
 typedef	enum
 {
+	CMD_LSM6DSO_FUNC_CFG_ACCESS				=	0x01,
+	CMD_LSM6DSO_DRDY_PULSED_RED				=	0x0B,
 	CMD_LSM6DSO_INT1_CTRL					=	0x0D,
 	CMD_LSM6DSO_GET_SN						=	0x0F,
 	CMD_LSM6DSO_CTRL1_XL					=	0x10,
@@ -68,6 +70,7 @@ typedef	void(*tCb_GetData_LSM6DSO)(tBSP_PER_DataResp *Data);
 /* USER CODE BEGIN PFP */
 void				BSP_LSM6DSO_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc);
 void 				task_LSM6DSO( void *arguments);
+void				BSP_LSM6DSO_Cb_INT1( tBSP_PER_DataCmd* cmd);
 bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd* cmd);
 
 /* USER CODE END PFP */

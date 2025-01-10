@@ -28,6 +28,7 @@ extern "C" {
 #include "Gpio.h"
 #include "..\RespCodes.h"
 #include "..\Sens\task_Sensors.h"
+#include "..\Sens\LSM6DSO.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -62,6 +63,7 @@ static	uint16_t		Main_Time 			= 0;
 static	uint32_t		Main_Time_Target	= 0;
 static	uint8_t			Main_State 			= 0;
 
+static	tCb_INT1_Sensor	Main_Cb_INT1_Sensor	= NULL;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -131,6 +133,15 @@ void BSP_GPIO_MainLoop( void)
   * @brief
   * @retval
   */
+void				BSP_GPIO_Set_Cb_INT1( tCb_INT1_Sensor Func)
+{
+	Main_Cb_INT1_Sensor	= Func;
+}
+
+/**
+  * @brief
+  * @retval
+  */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 uint8_t			idx;
@@ -146,19 +157,18 @@ GPIO_TypeDef*	Port = NULL;
 		}
 	}
 
-	if( GPIO_Pin == GPIO_PIN_13) // PORTC, PIN 13
+	switch( GPIO_Pin)
+	{
+	case	B1_button_Pin:	// PC13
 	{
 		if( Port != NULL)
 		{
 			if( HAL_GPIO_ReadPin(Port, GPIO_Pin) == GPIO_PIN_SET)
 			{
 				printf("Blue button pressed\n");
-
-				{
-					tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_VOID,
-													.Function	=	eBSP_PER_FUNC_VOID};
-					BSP_Sensors_Cmd( &Cmd, true);
-				}
+				tBSP_PER_DataCmd	Cmd	=	{ .Target =	eBSP_PER_TARGET_VOID};
+				Cmd.Function	= eBSP_PER_FUNC_VOID;
+				BSP_Sensors_Cmd( &Cmd, true);
 			}
 			else
 				printf("Blue button released\n");
@@ -166,13 +176,16 @@ GPIO_TypeDef*	Port = NULL;
 		else
 			printf("Error! Invalid Port\n");
 	}
+	break;
 
-	if( GPIO_Pin == LSM6DSO_INT1_Pin)
+	case	LSM6DSO_INT1_Pin:	//	PF10
 	{
-		printf("LSM6DSO_INT1_Pin\n");
-		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSO,
-										.Function	=	eBSP_PER_FUNC_GET_GYRO_ACCL};
-		BSP_Sensors_Cmd( &Cmd, false);
+		tBSP_PER_DataCmd	Cmd	= { .Target = eBSP_PER_TARGET_LSM6DSO};
+		Cmd.Function	= eBSP_PER_FUNC_GET_GYRO_ACCL;
+		if( Main_Cb_INT1_Sensor != NULL)
+			Main_Cb_INT1_Sensor( &Cmd);
+	}
+	break;
 	}
 }
 

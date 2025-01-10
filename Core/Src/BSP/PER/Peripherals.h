@@ -71,6 +71,8 @@ typedef	enum
 	eBSP_PER_FUNC_GET_GYRO		,		//	12
 	eBSP_PER_FUNC_GET_ACCL		,		//	13
 	eBSP_PER_FUNC_GET_GYRO_ACCL	,		//	14
+	/***** Special Functions *****/
+	eBSP_PER_FUNC_SPECIAL_1		= 0xF0,	//	0xF0
 	/***** DON'T CROSS THIS LINE *****/
 	eBSP_PER_MAX_VALUE_FUNC				//
 }tBSP_PER_Func;

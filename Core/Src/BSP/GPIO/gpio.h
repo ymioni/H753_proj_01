@@ -31,6 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "..\PER\Peripherals.h"
 
 /* USER CODE END Includes */
 
@@ -54,7 +55,7 @@ typedef enum
 	eBSP_GPIO_RESULT_MAX_VALUE				//
 }tBSP_GPIO_RESULT;
 
-typedef	void (*Cb_Gpio)(void);
+typedef void(*tCb_INT1_Sensor)( tBSP_PER_DataCmd* cmd);
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -71,6 +72,7 @@ typedef	void (*Cb_Gpio)(void);
 /* USER CODE BEGIN EFP */
 bool				BSP_GPIO_Init( GPIO_TypeDef* Port, uint16_t Pin);
 void 				BSP_GPIO_MainLoop( void);
+void				BSP_GPIO_Set_Cb_INT1( tCb_INT1_Sensor Func);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
