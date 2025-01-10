@@ -533,6 +533,7 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
@@ -548,6 +549,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_button_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LSM6DSO_INT1_Pin */
+  GPIO_InitStruct.Pin = LSM6DSO_INT1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(LSM6DSO_INT1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : Green_led_Pin Red_led_Pin */
   GPIO_InitStruct.Pin = Green_led_Pin|Red_led_Pin;

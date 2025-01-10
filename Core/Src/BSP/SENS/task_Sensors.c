@@ -372,10 +372,10 @@ static	void		BSP_Sensors_Cb_Timer( void *argument)
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_STTS22,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LPS22D,	eBSP_PER_FUNC_GET_SN,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_GET_ACCL,	0, 0, 0);
+	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSV,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSO,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSO,	eBSP_PER_FUNC_GET_GYRO_ACCL,	0, 0, 0);
+//	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSO,	eBSP_PER_FUNC_GET_GYRO_ACCL,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2DUX,	eBSP_PER_FUNC_GET_SN,	0, 0, 0);
 }
 

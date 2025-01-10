@@ -28,6 +28,7 @@
 /* USER CODE BEGIN PTD */
 typedef	enum
 {
+	CMD_LSM6DSO_INT1_CTRL					=	0x0D,
 	CMD_LSM6DSO_GET_SN						=	0x0F,
 	CMD_LSM6DSO_CTRL1_XL					=	0x10,
 	CMD_LSM6DSO_CTRL2_G						=	0x11,
@@ -39,6 +40,7 @@ typedef	enum
 	CMD_LSM6DSO_ACCL_X_L					=	0x28,	// + 0x29
 	CMD_LSM6DSO_ACCL_Y_L					=	0x2A,	// + 0x2B
 	CMD_LSM6DSO_ACCL_Z_L					=	0x2C,	// + 0x2D
+	CMD_LSM6DSO_MD1_CFG						=	0x5E,
 }tCmd_LSM6DSO;
 
 typedef	void(*tCb_GetData_LSM6DSO)(tBSP_PER_DataResp *Data);

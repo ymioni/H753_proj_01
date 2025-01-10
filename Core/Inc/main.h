@@ -63,6 +63,9 @@ void Error_Handler(void);
 #define B1_button_Pin GPIO_PIN_13
 #define B1_button_GPIO_Port GPIOC
 #define B1_button_EXTI_IRQn EXTI15_10_IRQn
+#define LSM6DSO_INT1_Pin GPIO_PIN_10
+#define LSM6DSO_INT1_GPIO_Port GPIOF
+#define LSM6DSO_INT1_EXTI_IRQn EXTI15_10_IRQn
 #define Green_led_Pin GPIO_PIN_0
 #define Green_led_GPIO_Port GPIOB
 #define Red_led_Pin GPIO_PIN_14

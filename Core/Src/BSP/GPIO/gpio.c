@@ -166,6 +166,14 @@ GPIO_TypeDef*	Port = NULL;
 		else
 			printf("Error! Invalid Port\n");
 	}
+
+	if( GPIO_Pin == LSM6DSO_INT1_Pin)
+	{
+		printf("LSM6DSO_INT1_Pin\n");
+		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSO,
+										.Function	=	eBSP_PER_FUNC_GET_GYRO_ACCL};
+		BSP_Sensors_Cmd( &Cmd, false);
+	}
 }
 
 
