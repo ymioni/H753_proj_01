@@ -27,6 +27,7 @@
 #include "..\RespCodes.h"
 #include "task_Sensors.h"
 #include "..\I2C\I2C.h"
+#include "..\GPIO\Gpio.h"
 #include "LSM6DSO.h"
 /* USER CODE END Includes */
 
@@ -107,13 +108,12 @@ static struct __PACKED
 }Data_GyroAccl;
 
 static	bool						Main_Q_Err			= false;
+static	bool						Main_INT1_Void		= true;
 static	tBSP_PER_Target				Main_Device			= eBSP_PER_TARGET_VOID;
 static	osMessageQueueId_t 			Main_Q;
 static	const osMessageQueueAttr_t	Q_attributes		= {	.name = "Q_LSM6DSO"};
 static	I2C_HandleTypeDef*			Main_Handle 		= NULL;
 static	tCb_Sensor_GetData			Main_CbFunc			= NULL;
-static	osMutexId_t 				Main_Mtx;
-static	const osMutexAttr_t			Mtx_attributes		= {	.name = "M_LSM6DSO"};
 
 static	uint16_t					Main_Timeout		= 50;
 static	uint16_t					Main_Delay 			= 5;
@@ -155,8 +155,7 @@ void				BSP_LSM6DSO_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc)
 {
 	Main_Handle = handle;
 	Main_CbFunc	= CbFunc;
-
-	Main_Mtx	= osMutexNew(&Mtx_attributes);
+	Main_INT1_Void	= true;
 
 	Main_Q	= osMessageQueueNew(16, sizeof(tQ_Cmd), &Q_attributes);
 
@@ -238,17 +237,15 @@ void				BSP_LSM6DSO_Cb_INT1( tBSP_PER_DataCmd* cmd)
 	tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSO};
 
 	Cmd.Function	= eBSP_PER_FUNC_GET_GYRO_ACCL;
-	if( Main_Q_Err == false)
-		BSP_LSM6DSO_Cmd( &Cmd);
+	if( (Main_INT1_Void == false) && (Main_Q_Err == false))
+	{
+		BSP_Sensors_Cmd( &Cmd, true);
+		Main_INT1_Void	= true;
+	}
 }
 
 bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd)
 {
-	// WARNING! This function is mutex-protected! (see gpio, task_Sensors)
-	// NO mid-return from this point !!!
-
-	osMutexAcquire( Main_Mtx, osWaitForever);
-
 	tQ_Cmd	Cmd = {0};
 	bool	result = true;
 
@@ -316,8 +313,6 @@ bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd)
 	val[10]	= msgs;
 #endif
 	}
-
-	osMutexRelease( Main_Mtx);
 
 	return	result;
 }
@@ -424,6 +419,9 @@ static	bool		BSP_LSM6DSO_Transaction(tQ_Cmd Rec)
 		{
 			BSP_LSM6DSO_Transaction_Tx(false, Rec.cmd);
 		}
+
+		if( (Rec.cmd == CMD_LSM6DSO_INT1_CTRL) && (Rec.reg_data == 0x03))
+			Main_INT1_Void	= false;
 	}
 
 	return result;
@@ -523,13 +521,13 @@ static	bool		BSP_LSM6DSO_Transaction_SetData(tCmd_LSM6DSO Cmd)
 	case	CMD_LSM6DSO_TEMP_L:
 		Main_Per_DataResp.Temperature = BSP_Per_Convert(eBSP_PER_TARGET_LSM6DSO, eBSP_PER_FUNC_TEMP, Data_Temp.Temperature);
 
-//#ifdef MY_DEBUG_PRINTF
+#ifdef MY_DEBUG_PRINTF
 		printf("LSM6DSO | R: %d | SN: %lX T: %.2f RH: %d\n",
 				result,
 				Main_Per_DataResp.SerialNumber,
 				Main_Per_DataResp.Temperature,
 				Main_Per_DataResp.Humidity_i);
-//#endif
+#endif
 		break;
 
 	case	CMD_LSM6DSO_GYRO_X_L:
@@ -537,6 +535,8 @@ static	bool		BSP_LSM6DSO_Transaction_SetData(tCmd_LSM6DSO Cmd)
 		tBSP_PER_Func 		Function;
 		float 				factor;
 		uint16_t 			divider		= 1000;
+
+		Main_INT1_Void	= false;
 
 		if( Main_Gyro_idx >= MAX_FULLSCALE_GYRO)	Main_Gyro_idx	= 0;
 		if( Main_Accl_idx >= MAX_FULLSCALE_ACCL)	Main_Accl_idx	= 0;
@@ -553,7 +553,7 @@ static	bool		BSP_LSM6DSO_Transaction_SetData(tCmd_LSM6DSO Cmd)
 		Main_Per_DataResp.Data_GyroAccl.Accl.Y	= BSP_Per_Convert_XLG( Target, Function, Data_GyroAccl.Accl.Y, factor, divider);
 		Main_Per_DataResp.Data_GyroAccl.Accl.Z	= BSP_Per_Convert_XLG( Target, Function, Data_GyroAccl.Accl.Z, factor, divider);
 
-//#ifdef MY_DEBUG_PRINTF
+#ifdef MY_DEBUG_PRINTF_XLG
 		printf("LSM6DSO | Gyro: (X: %.2f Y: %.2f Z: %.2f) | Accl: (X: %.2f Y: %.2f Z: %.2f)\n",
 				Main_Per_DataResp.Data_GyroAccl.Gyro.X,
 				Main_Per_DataResp.Data_GyroAccl.Gyro.Y,
@@ -561,7 +561,7 @@ static	bool		BSP_LSM6DSO_Transaction_SetData(tCmd_LSM6DSO Cmd)
 				Main_Per_DataResp.Data_GyroAccl.Accl.X,
 				Main_Per_DataResp.Data_GyroAccl.Accl.Y,
 				Main_Per_DataResp.Data_GyroAccl.Accl.Z);
-//#endif
+#endif
 		break;
 
 	default:

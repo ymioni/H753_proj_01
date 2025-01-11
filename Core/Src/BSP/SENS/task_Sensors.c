@@ -119,7 +119,7 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	BSP_Sensors_Cb_Timer(NULL);	//	MUST call this BEFORE calling osTimerStart() (it's a timer's Cb function)
 
 	Main_Timer_idle	=	osTimerNew( BSP_Sensors_Cb_Timer, osTimerPeriodic, NULL, NULL);
-	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(10));
+	osTimerStart( Main_Timer_idle, pdMS_TO_TICKS(100));
 }
 
 /**
@@ -219,7 +219,7 @@ bool				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 	osStatus_t	status;
 	if( FromISR)
 	{
-		status	= osMessageQueuePut(Main_Q, &Cmd, 0, 0); // ISR! timeout MUST be 0
+		status	= osMessageQueuePut(Main_Q, Cmd, 0, 0); // ISR! timeout MUST be 0
 
 #ifdef	MY_DEBUG
 		if( status == osOK)	val2[2]	++;
@@ -381,7 +381,6 @@ static	void		BSP_Sensors_Cb_Timer( void *argument)
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_SHT40A,	eBSP_PER_FUNC_TEMP_RH,	eBSP_PER_PRCSN_HIGH, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_STTS22,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LPS22D,	eBSP_PER_FUNC_GET_SN,	0, 0, 0);
-	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2MDL,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LSM6DSV,	eBSP_PER_FUNC_TEMP_RH,	0, 0, 0);
 	BSP_Sensors_Cb_Timer_SetData( eBSP_PER_TARGET_LIS2DUX,	eBSP_PER_FUNC_GET_SN,	0, 0, 0);
