@@ -118,26 +118,27 @@ void				BSP_LIS2MDL_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc)
 	Main_Q	= osMessageQueueNew(16, sizeof(tQ_Cmd), &Q_attributes);
 
 	{
+		tBSP_SENS_Q_Cmd Dest	= {0};
 		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LIS2MDL};
 
 		Cmd.Function	=	eBSP_PER_FUNC_GET_SN;
-		BSP_Sensors_Cmd( &Cmd, false);
+		BSP_Sensors_Cmd( &Dest, &Cmd, false);
 
 		// MANDATORY! Don't delete this block
 		Cmd.Function	=	eBSP_PER_FUNC_SET_REG;
 		Cmd.Reg_addr	=	CMD_LIS2MDL_CTRL_REG_A;
 		Cmd.Reg_data	=	Main_Setting_Ctrl_A;
-		BSP_Sensors_Cmd( &Cmd, false);
+		BSP_Sensors_Cmd( &Dest, &Cmd, false);
 
 		Cmd.Function	=	eBSP_PER_FUNC_SET_REG;
 		Cmd.Reg_addr	=	CMD_LIS2MDL_CTRL_REG_B;
 		Cmd.Reg_data	=	Main_Setting_Ctrl_B;
-		BSP_Sensors_Cmd( &Cmd, false);
+		BSP_Sensors_Cmd( &Dest, &Cmd, false);
 
 		Cmd.Function	=	eBSP_PER_FUNC_SET_REG;
 		Cmd.Reg_addr	=	CMD_LIS2MDL_CTRL_REG_C;
 		Cmd.Reg_data	=	Main_Setting_Ctrl_C;
-		BSP_Sensors_Cmd( &Cmd, false);
+		BSP_Sensors_Cmd( &Dest, &Cmd, false);
 		// MANDATORY! (end block)
 	}
 }

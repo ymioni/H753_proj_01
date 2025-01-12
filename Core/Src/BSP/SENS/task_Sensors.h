@@ -34,6 +34,15 @@ typedef	enum
 	eBSP_SENS_MAX_VALUE_ERR				//
 }tBSP_SENS_ErrCode;
 
+typedef struct
+{
+	tBSP_PER_Target		target;
+	tBSP_PER_Func		func;
+	int16_t				arg1;
+	int16_t				arg2;
+	int16_t				arg3;
+} tBSP_SENS_Q_Cmd;	//	Target for BSP_Sensors_Cmd()
+
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -58,7 +67,7 @@ typedef	enum
 /* USER CODE BEGIN PFP */
 void				BSP_Sensors_Init( I2C_HandleTypeDef *handle);
 void 				task_Sensors( void *arguments);
-bool				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR);
+bool				BSP_Sensors_Cmd( tBSP_SENS_Q_Cmd *Dest, tBSP_PER_DataCmd *Src, bool FromISR);
 void				BSP_Sensors_SetErr( tBSP_PER_Target Source, tBSP_SENS_ErrCode ErrCode, bool Set);
 /* USER CODE END PFP */
 

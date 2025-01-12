@@ -162,39 +162,40 @@ void				BSP_LSM6DSO_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc)
 	BSP_GPIO_Set_Cb_INT1( BSP_LSM6DSO_Cb_INT1);
 
 	{
+		tBSP_SENS_Q_Cmd Dest	= {0};
 		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSO};
 
 		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
 		Cmd.Reg_addr	= CMD_LSM6DSO_INT1_CTRL; // Disable INT1 activation (prevent triggering INT1 till it's relevant)
 		Cmd.Reg_data	= 0x00;
-		BSP_Sensors_Cmd( &Cmd, false);
+		BSP_Sensors_Cmd( &Dest, &Cmd, false);
 
 		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
 		Cmd.Reg_addr	= CMD_LSM6DSO_CTRL3_C;
 		Cmd.Reg_data	= 0x81;
-		BSP_Sensors_Cmd( &Cmd, false);
+		BSP_Sensors_Cmd( &Dest, &Cmd, false);
 
 /*		This section is reserved for cases of using special ISPU settings
 //		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
 //		Cmd.Reg_addr	= CMD_LSM6DSO_FUNC_CFG_ACCESS;
 //		Cmd.Reg_data	= 0x02;
-//		BSP_Sensors_Cmd( &Cmd, false);
+//		BSP_Sensors_Cmd( &Dest, &Cmd, false);
 //
 //		Cmd.Function	= eBSP_PER_FUNC_SET_REG;
 //		Cmd.Reg_addr	= CMD_LSM6DSO_FUNC_CFG_ACCESS;
 //		Cmd.Reg_data	= 0x00;
-//		BSP_Sensors_Cmd( &Cmd, false);
+//		BSP_Sensors_Cmd( &Dest, &Cmd, false);
 		End of section */
 
 		Cmd.Function	=	eBSP_PER_FUNC_GET_SN;
-		BSP_Sensors_Cmd( &Cmd, false);
+		BSP_Sensors_Cmd( &Dest, &Cmd, false);
 
 		Cmd.Function	= eBSP_PER_FUNC_TEMP_RH;
-		BSP_Sensors_Cmd( &Cmd, false);
+		BSP_Sensors_Cmd( &Dest, &Cmd, false);
 
 		Cmd.Function	= eBSP_PER_FUNC_SPECIAL_1;
 		Cmd.idx			= 1;
-		BSP_Sensors_Cmd( &Cmd, false);
+		BSP_Sensors_Cmd( &Dest, &Cmd, false);
 	}
 }
 
@@ -234,12 +235,13 @@ void 				task_LSM6DSO( void *arguments)
   */
 void				BSP_LSM6DSO_Cb_INT1( tBSP_PER_DataCmd* cmd)
 {
+	static tBSP_SENS_Q_Cmd Dest	= {0};
 	tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSO};
 
 	Cmd.Function	= eBSP_PER_FUNC_GET_GYRO_ACCL;
 	if( (Main_INT1_Void == false) && (Main_Q_Err == false))
 	{
-		BSP_Sensors_Cmd( &Cmd, true);
+		BSP_Sensors_Cmd( &Dest, &Cmd, true);
 		Main_INT1_Void	= true;
 	}
 }
@@ -323,28 +325,29 @@ bool				BSP_LSM6DSO_Cmd( tBSP_PER_DataCmd	*cmd)
   */
 static	void		BSP_LSM6DSO_PostInit_1( void)
 {
+	tBSP_SENS_Q_Cmd Dest	= {0};
 	tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSO};
 
 	Cmd.Function	= eBSP_PER_FUNC_SET_REG;
 	Cmd.Reg_addr	= CMD_LSM6DSO_CTRL1_XL;
 	Cmd.Reg_data	= 0x60;
-	BSP_Sensors_Cmd( &Cmd, false);
+	BSP_Sensors_Cmd( &Dest, &Cmd, false);
 	Main_Accl_idx	=	Cmd.Reg_data;
 
 	Cmd.Function	= eBSP_PER_FUNC_SET_REG;
 	Cmd.Reg_addr	= CMD_LSM6DSO_CTRL2_G;
 	Cmd.Reg_data	= 0x60;
-	BSP_Sensors_Cmd( &Cmd, false);
+	BSP_Sensors_Cmd( &Dest, &Cmd, false);
 	Main_Gyro_idx	= Cmd.Reg_data;
 
 	Cmd.Function	= eBSP_PER_FUNC_SET_REG;
 	Cmd.Reg_addr	= CMD_LSM6DSO_CTRL3_C;
 	Cmd.Reg_data	= 0x04;
-	BSP_Sensors_Cmd( &Cmd, false);
+	BSP_Sensors_Cmd( &Dest, &Cmd, false);
 
 	Cmd.Function	= eBSP_PER_FUNC_SPECIAL_1;
 	Cmd.idx			= 2;
-	BSP_Sensors_Cmd( &Cmd, false);
+	BSP_Sensors_Cmd( &Dest, &Cmd, false);
 }
 
 /**
@@ -353,23 +356,24 @@ static	void		BSP_LSM6DSO_PostInit_1( void)
   */
 static	void		BSP_LSM6DSO_PostInit_2( void)
 {
+	tBSP_SENS_Q_Cmd Dest	= {0};
 	tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LSM6DSO};
 
 	// Set Interrupt mode
 	Cmd.Function	= eBSP_PER_FUNC_SET_REG;
 	Cmd.Reg_addr	= CMD_LSM6DSO_DRDY_PULSED_RED;
 	Cmd.Reg_data	= 0x80;
-	BSP_Sensors_Cmd( &Cmd, false);
+	BSP_Sensors_Cmd( &Dest, &Cmd, false);
 
 	Cmd.Function	= eBSP_PER_FUNC_SET_REG;
 	Cmd.Reg_addr	= CMD_LSM6DSO_MD1_CFG;
 	Cmd.Reg_data	= 0x00;
-	BSP_Sensors_Cmd( &Cmd, false);
+	BSP_Sensors_Cmd( &Dest, &Cmd, false);
 
 	Cmd.Function	= eBSP_PER_FUNC_SET_REG;
 	Cmd.Reg_addr	= CMD_LSM6DSO_INT1_CTRL; // Beyond this point, INT1 starts activating
 	Cmd.Reg_data	= 0x03;
-	BSP_Sensors_Cmd( &Cmd, false);
+	BSP_Sensors_Cmd( &Dest, &Cmd, false);
 }
 
 /**

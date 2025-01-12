@@ -166,9 +166,10 @@ GPIO_TypeDef*	Port = NULL;
 			if( HAL_GPIO_ReadPin(Port, GPIO_Pin) == GPIO_PIN_SET)
 			{
 				printf("Blue button pressed\n");
+				tBSP_SENS_Q_Cmd Dest	= {0};
 				tBSP_PER_DataCmd	Cmd	=	{ .Target =	eBSP_PER_TARGET_VOID};
 				Cmd.Function	= eBSP_PER_FUNC_VOID;
-				BSP_Sensors_Cmd( &Cmd, true);
+				BSP_Sensors_Cmd( &Dest, &Cmd, true);
 			}
 			else
 				printf("Blue button released\n");

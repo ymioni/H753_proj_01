@@ -37,14 +37,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-typedef struct
-{
-	tBSP_PER_Target		target;
-	tBSP_PER_Func		func;
-	int16_t				arg1;
-	int16_t				arg2;
-	int16_t				arg3;
-} tQ_Sensor_Cmd;
 
 /* USER CODE END PTD */
 
@@ -74,7 +66,6 @@ struct
 
 static	osMessageQueueId_t 			Main_Q;
 static	const osMessageQueueAttr_t	Q_attributes	= {	.name = "Q_Sensors"};
-static	tQ_Sensor_Cmd				Main_Q_Cmd;
 
 static	osTimerId_t					Main_Timer_idle;
 static	bool						Main_Pause = false;
@@ -84,7 +75,7 @@ static	bool						Main_Pause = false;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
 static	void		BSP_Sensors_InitSensors( void);
-static	bool		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd);
+static	bool		BSP_Sensors_TxCmd2Sensor( tBSP_SENS_Q_Cmd	*cmd);
 static	void		BSP_Sensors_Cb_GetData( tBSP_PER_DataResp* data);
 static	void		BSP_Sensors_Cb_Timer( void *argument);
 static	bool		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func function, uint16_t arg1, uint16_t arg2, uint16_t arg3);
@@ -113,7 +104,7 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
 	Main_Targets[eBSP_PER_TARGET_LSM6DSO].handle	= Main_Info.hI2C;
 	Main_Targets[eBSP_PER_TARGET_LIS2DUX].handle	= Main_Info.hI2C;
 
-	Main_Q	= osMessageQueueNew(48, sizeof(tQ_Sensor_Cmd), &Q_attributes);
+	Main_Q	= osMessageQueueNew(48, sizeof(tBSP_SENS_Q_Cmd), &Q_attributes);
 
 	BSP_Sensors_InitSensors();
 	BSP_Sensors_Cb_Timer(NULL);	//	MUST call this BEFORE calling osTimerStart() (it's a timer's Cb function)
@@ -128,7 +119,7 @@ void				BSP_Sensors_Init( I2C_HandleTypeDef *handle)
   */
 void 				task_Sensors( void *arguments)
 {
-	static tQ_Sensor_Cmd	Cmd = {0};
+	static tBSP_SENS_Q_Cmd	Cmd = {0};
 
 	while(1)
 	{
@@ -148,64 +139,67 @@ void 				task_Sensors( void *arguments)
   * @brief
   * @retval
   */
-bool				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
+bool				BSP_Sensors_Cmd( tBSP_SENS_Q_Cmd *Dest, tBSP_PER_DataCmd *Src, bool FromISR)
 {
-	Main_Q_Cmd.target	= Cmd->Target;
-	Main_Q_Cmd.func		= Cmd->Function;
+	Dest->target	= Src->Target;
+	Dest->func		= Src->Function;
+	Dest->arg1		= 0;
+	Dest->arg2		= 0;
+	Dest->arg3		= 0;
 
-	if((Cmd->Target == eBSP_PER_TARGET_VOID) && (Cmd->Function == eBSP_PER_FUNC_VOID))
+	if((Src->Target == eBSP_PER_TARGET_VOID) && (Src->Function == eBSP_PER_FUNC_VOID))
 		Main_Pause ^= true;
 
 	if( Main_Pause)
 		return false;
 
-	if( (Cmd->Function == eBSP_PER_FUNC_GET_REG) || (Cmd->Function == eBSP_PER_FUNC_SET_REG))
+	if( (Src->Function == eBSP_PER_FUNC_GET_REG) || (Src->Function == eBSP_PER_FUNC_SET_REG))
 	{
-		Main_Q_Cmd.arg1		= Cmd->Reg_addr;
-		Main_Q_Cmd.arg2		= Cmd->Reg_data;
-		Main_Q_Cmd.arg3		= (bool)(Cmd->Function == eBSP_PER_FUNC_SET_REG);
+		Dest->arg1	= Src->Reg_addr;
+		Dest->arg2	= Src->Reg_data;
+		Dest->arg3	= (bool)(Src->Function == eBSP_PER_FUNC_SET_REG);
 	}
 
-	if( Cmd->Function == eBSP_PER_FUNC_SPECIAL_1)
+	if( Src->Function == eBSP_PER_FUNC_SPECIAL_1)
 	{
-		Main_Q_Cmd.arg1		= Cmd->idx;
+		Dest->arg1	= Src->idx;
 	}
 
-	switch( Main_Q_Cmd.target)
+	switch( Dest->target)
 	{
 	case	eBSP_PER_TARGET_SHT40A:
-		switch( Main_Q_Cmd.func)
+		switch( Dest->func)
 		{
 		case	eBSP_PER_FUNC_TEMP:
 		case	eBSP_PER_FUNC_RH:
 		case	eBSP_PER_FUNC_TEMP_RH:
-			Main_Q_Cmd.arg1	= Cmd->Precision;
+			Dest->arg1	= Src->Precision;
 			break;
 		}
 		break;
 
 	case	eBSP_PER_TARGET_STTS22:
-		switch( Main_Q_Cmd.func)
+		switch( Dest->func)
 		{
 		case	eBSP_PER_FUNC_SET_CTRL:
-			Main_Q_Cmd.arg1	= Cmd->Control;
+			Dest->arg1	= Src->Control;
 			break;
 		}
 		break;
 
 	case	eBSP_PER_TARGET_LIS2MDL:
-		switch( Main_Q_Cmd.func)
+		switch( Dest->func)
 		{
 		case	eBSP_PER_FUNC_SET_CTRL:
-			Main_Q_Cmd.arg1	= Cmd->Control;
-			Main_Q_Cmd.arg2	= Cmd->idx;
+			Dest->arg1	= Src->Control;
+			Dest->arg2	= Src->idx;
 			break;
 		}
 		break;
 	}
 
 	// no target or no function
-	if((Cmd->Target == eBSP_PER_TARGET_VOID) || (Cmd->Function == eBSP_PER_FUNC_VOID))
+	if((Src->Target == eBSP_PER_TARGET_VOID) || (Src->Function == eBSP_PER_FUNC_VOID))
 	{
 #ifdef	MY_DEBUG
 		cnt3er[2]	++;
@@ -219,7 +213,7 @@ bool				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 	osStatus_t	status;
 	if( FromISR)
 	{
-		status	= osMessageQueuePut(Main_Q, &Main_Q_Cmd, 0, 0); // ISR! timeout MUST be 0
+		status	= osMessageQueuePut(Main_Q, Dest, 0, 0); // ISR! timeout MUST be 0
 
 #ifdef	MY_DEBUG
 		if( status == osOK)	val2[2]	++;
@@ -228,7 +222,7 @@ bool				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 	}
 	else
 	{
-		status	= osMessageQueuePut(Main_Q, &Main_Q_Cmd, 0, osWaitForever);
+		status	= osMessageQueuePut(Main_Q, Dest, 0, osWaitForever);
 
 #ifdef	MY_DEBUG
 		if( status == osOK)	val2[0]	++;
@@ -275,7 +269,7 @@ static	void		BSP_Sensors_InitSensors( void)
   * @brief
   * @retval
   */
-static	bool		BSP_Sensors_TxCmd2Sensor( tQ_Sensor_Cmd	*cmd)
+static	bool		BSP_Sensors_TxCmd2Sensor( tBSP_SENS_Q_Cmd	*cmd)
 {
 	tBSP_PER_DataCmd	Cmd = {0};
 
@@ -393,6 +387,7 @@ static	void		BSP_Sensors_Cb_Timer( void *argument)
   */
 static	bool		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func function, uint16_t arg1, uint16_t arg2, uint16_t arg3)
 {
+	tBSP_SENS_Q_Cmd		Dest = {0};
 	tBSP_PER_DataCmd	Cmd	=	{	.Target		=	target,
 									.Function	=	function};
 	if( Main_Pause)
@@ -419,7 +414,7 @@ static	bool		BSP_Sensors_Cb_Timer_SetData( tBSP_PER_Target target, tBSP_PER_Func
 	if( (target == eBSP_PER_TARGET_SHT40A) && (function == eBSP_PER_FUNC_TEMP_RH))
 		Cmd.Precision	= arg1;
 
-	BSP_Sensors_Cmd( &Cmd, false);
+	BSP_Sensors_Cmd( &Dest, &Cmd, false);
 
 	return true;
 }

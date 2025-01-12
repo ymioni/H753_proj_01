@@ -110,9 +110,10 @@ void				BSP_LIS2DUX_Init( I2C_HandleTypeDef *handle, tCb_Sensor_GetData	CbFunc)
 	Main_Q	= osMessageQueueNew(16, sizeof(tQ_Cmd), &Q_attributes);
 
 	{
+		tBSP_SENS_Q_Cmd Dest	= {0};
 		tBSP_PER_DataCmd	Cmd	=	{	.Target		=	eBSP_PER_TARGET_LIS2DUX,
 										.Function	=	eBSP_PER_FUNC_GET_SN};
-		BSP_Sensors_Cmd( &Cmd, false);
+		BSP_Sensors_Cmd( &Dest, &Cmd, false);
 	}
 }
 
