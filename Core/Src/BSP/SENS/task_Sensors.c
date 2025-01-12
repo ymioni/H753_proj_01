@@ -219,7 +219,7 @@ bool				BSP_Sensors_Cmd( tBSP_PER_DataCmd *Cmd, bool FromISR)
 	osStatus_t	status;
 	if( FromISR)
 	{
-		status	= osMessageQueuePut(Main_Q, Cmd, 0, 0); // ISR! timeout MUST be 0
+		status	= osMessageQueuePut(Main_Q, &Main_Q_Cmd, 0, 0); // ISR! timeout MUST be 0
 
 #ifdef	MY_DEBUG
 		if( status == osOK)	val2[2]	++;
